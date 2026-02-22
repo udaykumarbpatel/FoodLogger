@@ -73,7 +73,7 @@ FoodLogger/                     ← git root & Xcode project root
     Services/NotificationService.swift      ← @MainActor; schedules 14 individual daily reminders
     Services/ExportService.swift            ← pure struct; jsonData(from:) + filename(for:); no actor isolation
     Services/InsightsService.swift          ← @MainActor final class; typed analytics over [FoodEntry]; see below
-    Services/SampleDataService.swift        ← @MainActor final class; seedIfNeeded(context:); 90 days of realistic sample data
+    Services/SampleDataService.swift        ← @MainActor final class; seedIfNeeded(context:) + seed(context:); 120 days of realistic sample data
   FoodLoggerTests/              ← test target (file-system sync root)
     FoodDescriptionBuilderTests.swift   (Swift Testing — 12 tests)
     FoodEntryModelTests.swift           (Swift Testing — 9 tests)
@@ -81,7 +81,7 @@ FoodLogger/                     ← git root & Xcode project root
     MealCategoryTests.swift             (Swift Testing — 47 tests for CategoryDetectionService)
     ExportServiceTests.swift            (Swift Testing — 20 tests for ExportService)
     InsightsServiceTests.swift          (Swift Testing — 37 tests for InsightsService)
-    SampleDataServiceTests.swift        (Swift Testing — 9 tests for SampleDataService)
+    SampleDataServiceTests.swift        (Swift Testing — 10 tests for SampleDataService)
   FoodLogger.xcodeproj/
 ```
 
@@ -114,7 +114,7 @@ All tests use Swift Testing (`@Test`, `#expect`) and `@MainActor` unless noted:
 - **MealCategoryTests** (47 tests): all six keyword categories, keyword-over-time-bucket priority, each time-bucket fallback, case-insensitive tokenisation, Vision label pass-through, Indian/South Indian food vocabulary (idli, dosa, biryani, lassi, samosa, tikka, kheer, etc.)
 - **ExportServiceTests** (20 tests): valid JSON, all required fields present, field values (id, inputType, category rawValues), NSNull for nil optional fields, ISO 8601 date format, empty array, multiple entries, filename format and prefix
 - **InsightsServiceTests** (37 tests): every InsightsService method covered — topItems (frequency, stopword stripping, period filtering, limit), dailyCounts (gap-filling, period window), categoryDistribution (percentages, nil exclusion), inputTypeBreakdown, mealTiming (24-hour bins), weekOverWeekTrend (this/last week windows), monthlyHeatmap (all days filled), coOccurrence (same-day pairing)
-- **SampleDataServiceTests** (9 tests): seeds when empty, no-op when data exists, all 6 categories, all 3 input types, no future dates, [SAMPLE] prefix on all rawInputs, date = startOfDay, count ≥ 50, deterministic output
+- **SampleDataServiceTests** (10 tests): seeds when empty, no-op when data exists, all 6 categories, all 3 input types, no future dates, [SAMPLE] prefix on all rawInputs, date = startOfDay, count ≥ 70, deterministic output, `seed()` forces re-seed even when entries exist
 - **VisionServiceTests** (4 tests) uses XCTest — Swift Testing's 1-second async timeout (caused by `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`) kills Vision tests before the model initialises. `VNClassifyImageRequest` may not be available on the iOS 26.2 simulator beta; Vision tests skip gracefully rather than failing.
 - SwiftData tests use `ModelConfiguration(isStoredInMemoryOnly: true)` for full isolation
 
@@ -149,7 +149,7 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 ## SettingsView architecture
 - Three sections: **Notifications** (daily reminder toggle + time picker), **Data** (Export Data button), and **Developer** (`#if DEBUG` only — "Clear Sample Data" destructive button with confirmation alert)
 - **Export flow:** fetches all `FoodEntry` records via `modelContext`, calls `ExportService.jsonData(from:)` + `ExportService.filename()`, writes to a temp file, then presents a `ShareSheet` (thin `UIActivityViewController` wrapper) via `.sheet(item: $exportItem)`. If no entries exist, shows a "Nothing to Export" alert instead.
-- **Clear Sample Data (DEBUG):** fetches all entries, deletes those with `rawInput.hasPrefix("[SAMPLE]")`, saves, then calls `SampleDataService().seedIfNeeded(context:)` to re-seed fresh data. Requires confirmation alert before deletion.
+- **Clear Sample Data (DEBUG):** fetches all entries, deletes those with `rawInput.hasPrefix("[SAMPLE]")`, saves, then calls `SampleDataService().seed(context:)` (unconditional — not `seedIfNeeded`) to guarantee re-seeding even when real entries coexist. Requires confirmation alert before deletion.
 - `ExportItem`: private `Identifiable` struct wrapping the temp `URL`, used as the `.sheet(item:)` binding.
 - `ShareSheet`: `UIViewControllerRepresentable` defined in `SettingsView.swift`; reusable if needed elsewhere.
 
@@ -161,7 +161,7 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 - **StreakService**: `struct`. `compute(from: [FoodEntry]) -> StreakInfo` builds a `Set<Date>` of days with entries then counts consecutive days backward from today (or yesterday if no entry today).
 - **NotificationService**: `@MainActor final class`. `scheduleReminders(at:hasLoggedToday:)` removes all pending requests then schedules 14 individual non-repeating `UNCalendarNotificationTrigger` notifications (one per day), skipping today if already logged and skipping past times. **Why 14:** iOS caps an app at 64 pending notifications; 14 covers two weeks of daily reminders while leaving ~50 slots free for other future notification types. The window is rescheduled from scratch on every call so it always stays current.
 - **InsightsService**: `@MainActor final class`. Accepts `[FoodEntry]`, returns typed analytics structs. Key types: `AnalyticsPeriod` (week/month/threeMonths/year/allTime), `FoodItemFrequency`, `DailyCount`, `CategoryCount`, `InputTypeCount`, `HourCount`, `WeekComparison`, `DayActivity`, `ItemPair` (all `Identifiable` except `WeekComparison`). Methods: `topItems`, `dailyCounts`, `categoryDistribution`, `inputTypeBreakdown`, `mealTiming`, `weekOverWeekTrend`, `monthlyHeatmap`, `coOccurrence`. Strips stopwords: a, the, and, with, of, in, for, had, ate, some, my, an.
-- **SampleDataService**: `@MainActor final class`. Single method `seedIfNeeded(context: ModelContext)` — no-op if any `FoodEntry` exists (checks with `fetchLimit: 1`). Seeds 90 days of data (~85% of days have 1–3 entries), all 6 categories, all 3 input types, 35+ realistic food items, every `rawInput` prefixed with `[SAMPLE]`. Uses deterministic LCG (`SeededRNG`) for reproducible output. Image entries have `mediaURL = nil`.
+- **SampleDataService**: `@MainActor final class`. Two public methods: `seedIfNeeded(context:)` — no-op if any `FoodEntry` exists (used on first launch); `seed(context:)` — unconditional, always inserts a full batch (used by "Clear & Re-seed" in Settings). Seeds 120 days of data (~85% of days have 1–3 entries), all 6 categories, all 3 input types, 35+ realistic food items, every `rawInput` prefixed with `[SAMPLE]`. Uses deterministic LCG (`SeededRNG`) for reproducible output. Image entries have `mediaURL = nil`.
 
 ## InsightsView architecture
 Presented as a `.large` sheet from the `chart.bar.fill` toolbar button in `DayLogView`. Takes `entries: [FoodEntry]` (passed from DayLogView's existing `@Query allEntries`).
