@@ -103,6 +103,7 @@ struct SettingsView: View {
             } message: {
                 Text("You haven't logged any entries yet.")
             }
+            #if DEBUG
             .alert("Clear Sample Data?", isPresented: $showClearOnlyConfirm) {
                 Button("Clear", role: .destructive) {
                     clearSampleData()
@@ -119,6 +120,7 @@ struct SettingsView: View {
             } message: {
                 Text("This will delete all [SAMPLE] entries and insert a fresh batch of sample data.")
             }
+            #endif
             .sheet(item: $exportItem) { item in
                 ShareSheet(activityItems: [item.url])
             }
