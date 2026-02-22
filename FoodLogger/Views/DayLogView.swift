@@ -18,6 +18,7 @@ struct DayLogView: View {
     @State private var showSearch = false
     @State private var showSummary = false
     @State private var showSettings = false
+    @State private var showInsights = false
 
     private let streakService = StreakService()
 
@@ -81,6 +82,9 @@ struct DayLogView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView(hasLoggedToday: streakInfo.hasEntryToday)
         }
+        .sheet(isPresented: $showInsights) {
+            InsightsView(entries: allEntries)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .quickAction)) { notification in
             guard let action = notification.object as? String else { return }
             switch action {
@@ -109,6 +113,9 @@ struct DayLogView: View {
         }
 
         ToolbarItemGroup(placement: .navigationBarTrailing) {
+            Button { showInsights = true } label: {
+                Image(systemName: "chart.bar.fill")
+            }
             Button { showSearch = true } label: {
                 Image(systemName: "magnifyingglass")
             }

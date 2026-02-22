@@ -27,9 +27,7 @@ struct FoodLoggerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
-                DayLogView()
-            }
+            AppRootView()
         }
         .modelContainer(sharedModelContainer)
     }
@@ -86,4 +84,22 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 extension Notification.Name {
     static let quickAction = Notification.Name("FoodLogger.quickAction")
     static let openAddEntry = Notification.Name("FoodLogger.openAddEntry")
+}
+
+// MARK: - App Root View
+
+private struct AppRootView: View {
+    @Environment(\.modelContext) private var modelContext
+    @State private var didSeed = false
+
+    var body: some View {
+        NavigationStack {
+            DayLogView()
+        }
+        .task {
+            guard !didSeed else { return }
+            didSeed = true
+            SampleDataService().seedIfNeeded(context: modelContext)
+        }
+    }
 }

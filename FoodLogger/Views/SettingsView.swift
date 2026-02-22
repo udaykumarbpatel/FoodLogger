@@ -15,6 +15,7 @@ struct SettingsView: View {
     @State private var showPermissionDeniedAlert = false
     @State private var showEmptyExportAlert = false
     @State private var exportItem: ExportItem?
+    @State private var showClearSampleConfirm = false
 
     init(hasLoggedToday: Bool) {
         self.hasLoggedToday = hasLoggedToday
@@ -69,6 +70,18 @@ struct SettingsView: View {
                 } footer: {
                     Text("Exports all entries as a JSON file you can save or share.")
                 }
+
+                #if DEBUG
+                Section {
+                    Button("Clear Sample Data", role: .destructive) {
+                        showClearSampleConfirm = true
+                    }
+                } header: {
+                    Text("Developer")
+                } footer: {
+                    Text("Deletes all entries with the [SAMPLE] prefix, then re-seeds.")
+                }
+                #endif
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -91,6 +104,14 @@ struct SettingsView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("You haven't logged any entries yet.")
+            }
+            .alert("Clear Sample Data?", isPresented: $showClearSampleConfirm) {
+                Button("Clear & Re-seed", role: .destructive) {
+                    clearAndReseedSampleData()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will delete all [SAMPLE] entries and create fresh sample data.")
             }
             .sheet(item: $exportItem) { item in
                 ShareSheet(activityItems: [item.url])
@@ -139,6 +160,21 @@ struct SettingsView: View {
             notificationService.cancelAll()
         }
     }
+
+    // MARK: - Debug
+
+    #if DEBUG
+    private func clearAndReseedSampleData() {
+        let descriptor = FetchDescriptor<FoodEntry>()
+        let all = (try? modelContext.fetch(descriptor)) ?? []
+        let samples = all.filter { $0.rawInput.hasPrefix("[SAMPLE]") }
+        for entry in samples {
+            modelContext.delete(entry)
+        }
+        try? modelContext.save()
+        SampleDataService().seed(context: modelContext)
+    }
+    #endif
 }
 
 // MARK: - Helpers

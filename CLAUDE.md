@@ -63,7 +63,8 @@ FoodLogger/                     ← git root & Xcode project root
     Views/CalendarView.swift      ← month-grid sheet; tapping a day navigates DayLogView to that date
     Views/SearchView.swift        ← full-text search sheet; tapping a result navigates + highlights entry
     Views/SummaryView.swift       ← weekly/monthly grouped entry list sheet
-    Views/SettingsView.swift      ← daily reminder toggle + time picker + JSON export via ShareSheet
+    Views/SettingsView.swift      ← daily reminder toggle + time picker + JSON export via ShareSheet; #if DEBUG "Clear Sample Data" section
+    Views/InsightsView.swift      ← analytics dashboard: 8 Swift Charts cards + period picker; presented from DayLogView toolbar
     Services/SpeechService.swift
     Services/VisionService.swift
     Services/FoodDescriptionBuilder.swift
@@ -71,12 +72,16 @@ FoodLogger/                     ← git root & Xcode project root
     Services/StreakService.swift             ← struct; compute(from:[FoodEntry]) -> StreakInfo
     Services/NotificationService.swift      ← @MainActor; schedules 14 individual daily reminders
     Services/ExportService.swift            ← pure struct; jsonData(from:) + filename(for:); no actor isolation
+    Services/InsightsService.swift          ← @MainActor final class; typed analytics over [FoodEntry]; see below
+    Services/SampleDataService.swift        ← @MainActor final class; seedIfNeeded(context:); 90 days of realistic sample data
   FoodLoggerTests/              ← test target (file-system sync root)
     FoodDescriptionBuilderTests.swift   (Swift Testing — 12 tests)
     FoodEntryModelTests.swift           (Swift Testing — 9 tests)
     VisionServiceTests.swift            (XCTest — Vision needs no timeout limit — 4 tests)
     MealCategoryTests.swift             (Swift Testing — 47 tests for CategoryDetectionService)
     ExportServiceTests.swift            (Swift Testing — 20 tests for ExportService)
+    InsightsServiceTests.swift          (Swift Testing — 37 tests for InsightsService)
+    SampleDataServiceTests.swift        (Swift Testing — 9 tests for SampleDataService)
   FoodLogger.xcodeproj/
 ```
 
@@ -108,6 +113,8 @@ All tests use Swift Testing (`@Test`, `#expect`) and `@MainActor` unless noted:
 - **FoodEntryModelTests** (9 tests): SwiftData round-trip (in-memory store), date normalisation, `mediaURL` bare-filename rule, `updatedAt` lifecycle
 - **MealCategoryTests** (47 tests): all six keyword categories, keyword-over-time-bucket priority, each time-bucket fallback, case-insensitive tokenisation, Vision label pass-through, Indian/South Indian food vocabulary (idli, dosa, biryani, lassi, samosa, tikka, kheer, etc.)
 - **ExportServiceTests** (20 tests): valid JSON, all required fields present, field values (id, inputType, category rawValues), NSNull for nil optional fields, ISO 8601 date format, empty array, multiple entries, filename format and prefix
+- **InsightsServiceTests** (37 tests): every InsightsService method covered — topItems (frequency, stopword stripping, period filtering, limit), dailyCounts (gap-filling, period window), categoryDistribution (percentages, nil exclusion), inputTypeBreakdown, mealTiming (24-hour bins), weekOverWeekTrend (this/last week windows), monthlyHeatmap (all days filled), coOccurrence (same-day pairing)
+- **SampleDataServiceTests** (9 tests): seeds when empty, no-op when data exists, all 6 categories, all 3 input types, no future dates, [SAMPLE] prefix on all rawInputs, date = startOfDay, count ≥ 50, deterministic output
 - **VisionServiceTests** (4 tests) uses XCTest — Swift Testing's 1-second async timeout (caused by `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`) kills Vision tests before the model initialises. `VNClassifyImageRequest` may not be available on the iOS 26.2 simulator beta; Vision tests skip gracefully rather than failing.
 - SwiftData tests use `ModelConfiguration(isStoredInMemoryOnly: true)` for full isolation
 
@@ -140,8 +147,9 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 - `isHighlighted`: renders an accent-color stroke overlay; used when navigating from Search
 
 ## SettingsView architecture
-- Two sections: **Notifications** (daily reminder toggle + time picker) and **Data** (Export Data button)
-- **Export flow:** fetches all `FoodEntry` records via `modelContext`, calls `ExportService.jsonData(from:)` + `ExportService.filename()`, writes to a temp file, then presents a `ShareSheet` (thin `UIActivityViewController` wrapper) via `.sheet(item: $exportItem)`. If no entries exist, shows an "Nothing to Export" alert instead.
+- Three sections: **Notifications** (daily reminder toggle + time picker), **Data** (Export Data button), and **Developer** (`#if DEBUG` only — "Clear Sample Data" destructive button with confirmation alert)
+- **Export flow:** fetches all `FoodEntry` records via `modelContext`, calls `ExportService.jsonData(from:)` + `ExportService.filename()`, writes to a temp file, then presents a `ShareSheet` (thin `UIActivityViewController` wrapper) via `.sheet(item: $exportItem)`. If no entries exist, shows a "Nothing to Export" alert instead.
+- **Clear Sample Data (DEBUG):** fetches all entries, deletes those with `rawInput.hasPrefix("[SAMPLE]")`, saves, then calls `SampleDataService().seedIfNeeded(context:)` to re-seed fresh data. Requires confirmation alert before deletion.
 - `ExportItem`: private `Identifiable` struct wrapping the temp `URL`, used as the `.sheet(item:)` binding.
 - `ShareSheet`: `UIViewControllerRepresentable` defined in `SettingsView.swift`; reusable if needed elsewhere.
 
@@ -152,9 +160,27 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 - **CategoryDetectionService**: `@MainActor final class`. Single method `detect(hour:description:visionLabels:) -> MealCategory`. All six categories have dedicated `Set<String>` keyword lists checked in priority order (beverage → dessert → breakfast → lunch → snack → dinner); a keyword match returns immediately with no time-bucket consultation. Time buckets (5–10 breakfast, 11–14 lunch, 15–16 snack, 17–20 dinner, else snack) are only reached when zero keywords match across description and visionLabels tokens. Uses `Set<String>` for O(1) lookup; tokenises by splitting on whitespace and commas, lowercased. Keyword sets include Indian/South Indian vocabulary (idli, dosa, biryani, lassi, samosa, tikka, kheer, etc.) so those foods are categorised by content rather than falling through to the time bucket.
 - **StreakService**: `struct`. `compute(from: [FoodEntry]) -> StreakInfo` builds a `Set<Date>` of days with entries then counts consecutive days backward from today (or yesterday if no entry today).
 - **NotificationService**: `@MainActor final class`. `scheduleReminders(at:hasLoggedToday:)` removes all pending requests then schedules 14 individual non-repeating `UNCalendarNotificationTrigger` notifications (one per day), skipping today if already logged and skipping past times. **Why 14:** iOS caps an app at 64 pending notifications; 14 covers two weeks of daily reminders while leaving ~50 slots free for other future notification types. The window is rescheduled from scratch on every call so it always stays current.
+- **InsightsService**: `@MainActor final class`. Accepts `[FoodEntry]`, returns typed analytics structs. Key types: `AnalyticsPeriod` (week/month/threeMonths/year/allTime), `FoodItemFrequency`, `DailyCount`, `CategoryCount`, `InputTypeCount`, `HourCount`, `WeekComparison`, `DayActivity`, `ItemPair` (all `Identifiable` except `WeekComparison`). Methods: `topItems`, `dailyCounts`, `categoryDistribution`, `inputTypeBreakdown`, `mealTiming`, `weekOverWeekTrend`, `monthlyHeatmap`, `coOccurrence`. Strips stopwords: a, the, and, with, of, in, for, had, ate, some, my, an.
+- **SampleDataService**: `@MainActor final class`. Single method `seedIfNeeded(context: ModelContext)` — no-op if any `FoodEntry` exists (checks with `fetchLimit: 1`). Seeds 90 days of data (~85% of days have 1–3 entries), all 6 categories, all 3 input types, 35+ realistic food items, every `rawInput` prefixed with `[SAMPLE]`. Uses deterministic LCG (`SeededRNG`) for reproducible output. Image entries have `mediaURL = nil`.
+
+## InsightsView architecture
+Presented as a `.large` sheet from the `chart.bar.fill` toolbar button in `DayLogView`. Takes `entries: [FoodEntry]` (passed from DayLogView's existing `@Query allEntries`).
+
+- **Period picker:** segmented control at top (7D / 30D / 3M / 1Y / All) drives all time-sensitive charts via `@State selectedPeriod: AnalyticsPeriod`
+- **Charts (Swift Charts only — no third-party deps):**
+  - **Top Foods** — horizontal `BarMark`, top 10 food items by frequency
+  - **Daily Activity** — `LineMark` + `AreaMark` fill over the selected period
+  - **Categories** — donut `SectorMark` with `innerRadius: .ratio(0.6)`, total count center label, color per `MealCategory.color`
+  - **Meal Timing** — vertical `BarMark` by hour, color-banded by time of day (orange/green/yellow/indigo)
+  - **Week vs Last Week** — grouped `BarMark` with trend label (↑/↓ percentage, green/red)
+  - **Monthly Consistency** — custom `LazyVGrid` 7-column heatmap (NOT Charts), accent-opacity scale for 0/1/2/3+ entries; previous/next month navigation via `@State heatmapMonth`
+  - **Food Search** — `TextField` filtering `topItems(period: .allTime, limit: 100)`, shows name + count badge rows
+  - **Stats Card** — streak count (flame icon), consistency % ring progress (Circle `.trim`), total entries count
+- Every chart card handles empty data with an SF Symbol + message (no crashes on zero entries)
+- All derived data computed as private computed vars from `entries + selectedPeriod` — no `@State` for analytics results
 
 ## App entry point & quick actions
-`FoodLoggerApp.swift` uses `@UIApplicationDelegateAdaptor(AppDelegate.self)`. `AppDelegate` registers two `UIApplicationShortcutItem`s on launch:
+`FoodLoggerApp.swift` uses `@UIApplicationDelegateAdaptor(AppDelegate.self)`. Root view is `AppRootView` (private struct), which wraps `NavigationStack { DayLogView() }` and calls `SampleDataService().seedIfNeeded(context: modelContext)` once on launch via `.task`. `AppDelegate` registers two `UIApplicationShortcutItem`s on launch:
 - **"Log Food Now"** (`com.foodlogger.quicklog`): posts `Notification.Name.quickAction` with `"addEntry"` → `DayLogView` navigates to today and opens the Add Entry sheet
 - **"View Today"** (`com.foodlogger.viewtoday`): posts `Notification.Name.quickAction` with `"viewToday"` → `DayLogView` navigates to today
 
