@@ -6,6 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		AA000009AAAA0009AA000009 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 674A25EE2F4A9E9700E28E4A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 674A25F52F4A9E9700E28E4A;
+			remoteInfo = FoodLogger;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		674A25F62F4A9E9800E28E4A /* FoodLogger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FoodLogger.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA000001AAAA0001AA000001 /* FoodLoggerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoodLoggerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -188,16 +198,6 @@
 			targetProxy = AA000009AAAA0009AA000009 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin PBXContainerItemProxy section */
-		AA000009AAAA0009AA000009 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 674A25EE2F4A9E9700E28E4A /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 674A25F52F4A9E9700E28E4A;
-			remoteInfo = FoodLogger;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin XCBuildConfiguration section */
 		674A26012F4A9E9A00E28E4A /* Debug */ = {

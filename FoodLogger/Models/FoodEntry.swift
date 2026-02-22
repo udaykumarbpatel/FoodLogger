@@ -16,6 +16,8 @@ final class FoodEntry {
     var processedDescription: String
     var mediaURL: URL?
     var createdAt: Date
+    var category: MealCategory?
+    var updatedAt: Date?
 
     init(
         id: UUID = UUID(),
@@ -24,7 +26,9 @@ final class FoodEntry {
         inputType: InputType,
         processedDescription: String,
         mediaURL: URL? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        category: MealCategory? = nil,
+        updatedAt: Date? = nil
     ) {
         self.id = id
         self.date = date
@@ -33,5 +37,7 @@ final class FoodEntry {
         self.processedDescription = processedDescription
         self.mediaURL = mediaURL
         self.createdAt = createdAt
+        self.category = category
+        self.updatedAt = updatedAt
     }
 }

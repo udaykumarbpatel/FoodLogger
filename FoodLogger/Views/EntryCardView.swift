@@ -2,22 +2,35 @@ import SwiftUI
 
 struct EntryCardView: View {
     let entry: FoodEntry
+    let isToday: Bool
+    var isHighlighted: Bool = false
     @State private var isExpanded: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // Header row
             HStack(alignment: .center, spacing: 8) {
                 inputTypeIcon
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
+                categoryBadge
+
                 Spacer()
 
-                Text(entry.createdAt, style: .time)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                HStack(spacing: 5) {
+                    timestampLabel
+
+                    if entry.updatedAt != nil {
+                        Text("· edited")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .italic()
+                    }
+                }
             }
 
+            // Description
             Text(entry.processedDescription)
                 .font(.body)
                 .multilineTextAlignment(.leading)
@@ -31,12 +44,32 @@ struct EntryCardView: View {
         .padding(14)
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(isHighlighted ? Color.accentColor : .clear, lineWidth: 2)
+        )
         .onTapGesture {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isExpanded.toggle()
             }
         }
     }
+
+    // MARK: - Timestamp
+
+    private var timestampLabel: some View {
+        Group {
+            if isToday {
+                Text(entry.createdAt, style: .relative)
+            } else {
+                Text(entry.createdAt, style: .time)
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.tertiary)
+    }
+
+    // MARK: - Expanded Content
 
     @ViewBuilder
     private var expandedContent: some View {
@@ -60,8 +93,6 @@ struct EntryCardView: View {
 
     private func thumbnailView(for relativeURL: URL) -> some View {
         let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        // relativeURL is stored as a plain filename URL (e.g. "uuid.jpg"),
-        // use absoluteString to get the bare filename without a leading slash.
         let filename = relativeURL.absoluteString
         let absoluteURL = docsDir.appendingPathComponent(filename)
 
@@ -76,6 +107,54 @@ struct EntryCardView: View {
             }
         }
     }
+
+    // MARK: - Category Badge (tappable Menu)
+
+    @ViewBuilder
+    private var categoryBadge: some View {
+        let current = entry.category
+        Menu {
+            ForEach(MealCategory.allCases, id: \.self) { cat in
+                Button {
+                    entry.category = cat
+                } label: {
+                    Label(cat.displayName, systemImage: cat.icon)
+                }
+            }
+            Divider()
+            Button {
+                entry.category = nil
+            } label: {
+                Label("Remove Tag", systemImage: "xmark.circle")
+            }
+        } label: {
+            if let cat = current {
+                HStack(spacing: 4) {
+                    Image(systemName: cat.icon)
+                    Text(cat.displayName)
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(cat.color)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(cat.color.opacity(0.15))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            } else {
+                HStack(spacing: 4) {
+                    Image(systemName: "tag")
+                    Text("Tag")
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+        }
+    }
+
+    // MARK: - Input Type Icon
 
     private var inputTypeIcon: some View {
         let (name, label): (String, String) = {

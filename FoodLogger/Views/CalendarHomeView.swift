@@ -34,8 +34,8 @@ struct CalendarHomeView: View {
             }
             .navigationTitle("Food Log")
             .navigationBarTitleDisplayMode(.large)
-            .navigationDestination(for: Date.self) { date in
-                DayLogView(date: date)
+            .navigationDestination(for: Date.self) { _ in
+                DayLogView()
             }
         }
     }
