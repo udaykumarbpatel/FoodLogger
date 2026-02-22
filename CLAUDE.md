@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Standing rule — keep docs in sync
+**After every code change that adds, removes, or modifies a feature, architecture pattern, service, or user-facing behavior: update this file (CLAUDE.md) and README.md before considering the task complete.** Do not wait to be asked. This applies to any edit to a `.swift` file that affects how the app works.
+
 ## What this project is
 Native iOS food diary app. Users log meals by text, voice, or photo. Plain-text descriptions only — no calories or macros. 100% on-device; zero network requests.
 
@@ -45,6 +48,7 @@ enum InputType: String, Codable, CaseIterable { case text, image, voice }
 let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
 let absolute = docsDir.appendingPathComponent(mediaURL.absoluteString) // use .absoluteString, NOT .path
 ```
+**Why `.absoluteString` and not `.path`:** SwiftData may internally normalise a bare `URL(string: "uuid.jpg")` into a `file://` URL when persisting. If `.path` were used on a `file://` URL it would return the full absolute path (e.g. `"/var/mobile/.../Documents/uuid.jpg"`), and `appendingPathComponent` of that would produce a doubled, broken path. `.absoluteString` always returns the original string passed to `URL(string:)` — just the bare filename — making reconstruction safe regardless of how SwiftData stores the value.
 
 ## Project structure
 ```
@@ -53,25 +57,26 @@ FoodLogger/                     ← git root & Xcode project root
     App/FoodLoggerApp.swift       ← @main; AppDelegate for quick actions; Notification.Name extensions
     Models/FoodEntry.swift
     Models/MealCategory.swift     ← enum MealCategory (breakfast/lunch/snack/dinner/dessert/beverage)
-    Views/CalendarHomeView.swift  ← legacy standalone calendar (not the app root; kept for reference)
     Views/DayLogView.swift        ← HOME SCREEN: shell (DayLogView) + body (DayLogBody)
     Views/AddEntryView.swift      ← text/voice/image; edit mode via editingEntry: FoodEntry? param
     Views/EntryCardView.swift     ← card with relative/absolute timestamp, category badge, "edited" label
     Views/CalendarView.swift      ← month-grid sheet; tapping a day navigates DayLogView to that date
     Views/SearchView.swift        ← full-text search sheet; tapping a result navigates + highlights entry
     Views/SummaryView.swift       ← weekly/monthly grouped entry list sheet
-    Views/SettingsView.swift      ← daily reminder toggle + time picker (UserDefaults + UNUserNotificationCenter)
+    Views/SettingsView.swift      ← daily reminder toggle + time picker + JSON export via ShareSheet
     Services/SpeechService.swift
     Services/VisionService.swift
     Services/FoodDescriptionBuilder.swift
     Services/CategoryDetectionService.swift  ← @MainActor; detect(hour:description:visionLabels:)
     Services/StreakService.swift             ← struct; compute(from:[FoodEntry]) -> StreakInfo
     Services/NotificationService.swift      ← @MainActor; schedules 14 individual daily reminders
+    Services/ExportService.swift            ← pure struct; jsonData(from:) + filename(for:); no actor isolation
   FoodLoggerTests/              ← test target (file-system sync root)
     FoodDescriptionBuilderTests.swift   (Swift Testing — 12 tests)
     FoodEntryModelTests.swift           (Swift Testing — 9 tests)
     VisionServiceTests.swift            (XCTest — Vision needs no timeout limit — 4 tests)
-    MealCategoryTests.swift             (Swift Testing — 13 tests for CategoryDetectionService)
+    MealCategoryTests.swift             (Swift Testing — 47 tests for CategoryDetectionService)
+    ExportServiceTests.swift            (Swift Testing — 20 tests for ExportService)
   FoodLogger.xcodeproj/
 ```
 
@@ -80,7 +85,7 @@ FoodLogger/                     ← git root & Xcode project root
 # Build
 xcodebuild -scheme FoodLogger -destination "platform=iOS Simulator,name=iPhone 17 Pro" build
 
-# Run all tests (37 tests, all pass)
+# Run all tests
 xcodebuild test -scheme FoodLogger -destination "platform=iOS Simulator,name=iPhone 17 Pro"
 
 # Run a single test class
@@ -98,7 +103,11 @@ All simulators run iOS 26.2; use `iPhone 17 Pro` for development.
 Defined in pbxproj build settings (not a separate Info.plist). Search for `INFOPLIST_KEY_NS` in the xcodeproj to find/modify them.
 
 ## Test suite notes
-- **FoodDescriptionBuilderTests** (12 tests), **FoodEntryModelTests** (9 tests), and **MealCategoryTests** (13 tests) use Swift Testing (`@Test`, `#expect`) and `@MainActor`
+All tests use Swift Testing (`@Test`, `#expect`) and `@MainActor` unless noted:
+- **FoodDescriptionBuilderTests** (12 tests): NLTagger noun/adjective extraction for text, voice, and image paths; empty and edge-case inputs
+- **FoodEntryModelTests** (9 tests): SwiftData round-trip (in-memory store), date normalisation, `mediaURL` bare-filename rule, `updatedAt` lifecycle
+- **MealCategoryTests** (47 tests): all six keyword categories, keyword-over-time-bucket priority, each time-bucket fallback, case-insensitive tokenisation, Vision label pass-through, Indian/South Indian food vocabulary (idli, dosa, biryani, lassi, samosa, tikka, kheer, etc.)
+- **ExportServiceTests** (20 tests): valid JSON, all required fields present, field values (id, inputType, category rawValues), NSNull for nil optional fields, ISO 8601 date format, empty array, multiple entries, filename format and prefix
 - **VisionServiceTests** (4 tests) uses XCTest — Swift Testing's 1-second async timeout (caused by `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`) kills Vision tests before the model initialises. `VNClassifyImageRequest` may not be available on the iOS 26.2 simulator beta; Vision tests skip gracefully rather than failing.
 - SwiftData tests use `ModelConfiguration(isStoredInMemoryOnly: true)` for full isolation
 
@@ -130,13 +139,19 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 - Category badge is a tappable `Menu` — pick any MealCategory or "Remove Tag" (sets to nil)
 - `isHighlighted`: renders an accent-color stroke overlay; used when navigating from Search
 
+## SettingsView architecture
+- Two sections: **Notifications** (daily reminder toggle + time picker) and **Data** (Export Data button)
+- **Export flow:** fetches all `FoodEntry` records via `modelContext`, calls `ExportService.jsonData(from:)` + `ExportService.filename()`, writes to a temp file, then presents a `ShareSheet` (thin `UIActivityViewController` wrapper) via `.sheet(item: $exportItem)`. If no entries exist, shows an "Nothing to Export" alert instead.
+- `ExportItem`: private `Identifiable` struct wrapping the temp `URL`, used as the `.sheet(item:)` binding.
+- `ShareSheet`: `UIViewControllerRepresentable` defined in `SettingsView.swift`; reusable if needed elsewhere.
+
 ## Service architecture
 - **SpeechService**: `@Observable @MainActor` class. Uses a private `SpeechRecognizerDelegate: NSObject` bridge for AVAudioEngine/SFSpeechRecognizer callbacks. Configures AVAudioSession with `.record` category, `.measurement` mode, `.duckOthers`. Uses `#if targetEnvironment(simulator)` to disable on-device recognition on simulator.
 - **VisionService**: `final class VisionService: Sendable` with **no actor isolation** — stateless wrapper; `nonisolated` async method runs Vision on `DispatchQueue.global(qos: .userInitiated)` via `withCheckedThrowingContinuation`. Filters results to confidence > 0.3, top 3 labels.
 - **FoodDescriptionBuilder**: `@MainActor` stateless class. Text/voice paths use `NLTagger(.lexicalClass)` to extract nouns and adjectives; Vision path cleans labels (underscores → spaces, strips parenthetical qualifiers).
-- **CategoryDetectionService**: `@MainActor final class`. Single method `detect(hour:description:visionLabels:) -> MealCategory`. Content-first: beverage keywords beat time, dessert keywords beat time; then time buckets (5–10 breakfast, 11–14 lunch, 15–16 snack, 17–20 dinner, else snack). Uses `Set<String>` for O(1) keyword lookup.
+- **CategoryDetectionService**: `@MainActor final class`. Single method `detect(hour:description:visionLabels:) -> MealCategory`. All six categories have dedicated `Set<String>` keyword lists checked in priority order (beverage → dessert → breakfast → lunch → snack → dinner); a keyword match returns immediately with no time-bucket consultation. Time buckets (5–10 breakfast, 11–14 lunch, 15–16 snack, 17–20 dinner, else snack) are only reached when zero keywords match across description and visionLabels tokens. Uses `Set<String>` for O(1) lookup; tokenises by splitting on whitespace and commas, lowercased. Keyword sets include Indian/South Indian vocabulary (idli, dosa, biryani, lassi, samosa, tikka, kheer, etc.) so those foods are categorised by content rather than falling through to the time bucket.
 - **StreakService**: `struct`. `compute(from: [FoodEntry]) -> StreakInfo` builds a `Set<Date>` of days with entries then counts consecutive days backward from today (or yesterday if no entry today).
-- **NotificationService**: `@MainActor final class`. `scheduleReminders(at:hasLoggedToday:)` removes all pending requests then schedules 14 individual non-repeating `UNCalendarNotificationTrigger` notifications (one per day), skipping today if already logged and skipping past times.
+- **NotificationService**: `@MainActor final class`. `scheduleReminders(at:hasLoggedToday:)` removes all pending requests then schedules 14 individual non-repeating `UNCalendarNotificationTrigger` notifications (one per day), skipping today if already logged and skipping past times. **Why 14:** iOS caps an app at 64 pending notifications; 14 covers two weeks of daily reminders while leaving ~50 slots free for other future notification types. The window is rescheduled from scratch on every call so it always stays current.
 
 ## App entry point & quick actions
 `FoodLoggerApp.swift` uses `@UIApplicationDelegateAdaptor(AppDelegate.self)`. `AppDelegate` registers two `UIApplicationShortcutItem`s on launch:

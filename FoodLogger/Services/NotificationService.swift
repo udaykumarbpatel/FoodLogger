@@ -18,6 +18,11 @@ final class NotificationService {
         let minute = calendar.component(.minute, from: time)
         let now = Date()
 
+        // 14 days chosen deliberately: iOS allows up to 64 pending notifications per app.
+        // One notification per day for two weeks gives solid coverage for a daily reminder
+        // while leaving the remaining ~50 slots free for other future notification types.
+        // On each call (e.g. after the user logs a meal) all pending requests are removed
+        // and a fresh 14-day window is scheduled, so the window always stays current.
         for dayOffset in 0..<14 {
             guard let targetDay = calendar.date(byAdding: .day, value: dayOffset, to: today) else { continue }
 

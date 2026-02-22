@@ -20,6 +20,7 @@ A native iOS food diary app. Log what you ate — by typing, speaking, or photog
 - Weekly and monthly summary view
 - Consecutive-day streak counter
 - Daily reminder notifications (skips days you've already logged)
+- Export all entries as a JSON file (share or save via the standard iOS share sheet)
 - Home screen quick actions: "Log Food Now" and "View Today"
 - Expand an entry card to see the original input or image thumbnail
 - Full Dark Mode support
@@ -54,20 +55,21 @@ FoodLogger/
 │   ├── CalendarView.swift           # Month-grid sheet for date navigation
 │   ├── SearchView.swift             # Full-text search across all entries
 │   ├── SummaryView.swift            # Weekly / monthly grouped entry list
-│   ├── SettingsView.swift           # Daily reminder toggle + time picker
-│   └── CalendarHomeView.swift       # Legacy standalone calendar (retained for reference)
+│   └── SettingsView.swift           # Daily reminder toggle + time picker + JSON export
 └── Services/
     ├── SpeechService.swift          # On-device speech recognition & live transcript
     ├── VisionService.swift          # On-device image classification
     ├── FoodDescriptionBuilder.swift # NLTagger noun extraction + Vision label cleaning
     ├── CategoryDetectionService.swift # Content-first meal category auto-detection
     ├── StreakService.swift           # Consecutive-day streak computation
-    └── NotificationService.swift    # Daily reminder scheduling via UNUserNotificationCenter
+    ├── NotificationService.swift    # Daily reminder scheduling via UNUserNotificationCenter
+    └── ExportService.swift          # JSON serialisation + filename generation
 FoodLoggerTests/
     ├── FoodDescriptionBuilderTests.swift  (12 tests)
     ├── FoodEntryModelTests.swift          (9 tests)
     ├── VisionServiceTests.swift           (4 tests)
-    └── MealCategoryTests.swift            (13 tests)
+    ├── MealCategoryTests.swift            (35 tests)
+    └── ExportServiceTests.swift           (20 tests)
 ```
 
 ## Requirements
@@ -104,4 +106,4 @@ xcodebuild test \
   -destination "platform=iOS Simulator,name=iPhone 17 Pro"
 ```
 
-37 tests across 4 suites covering the data model, description builder, Vision service, and meal category detection.
+75 tests across 5 suites covering the data model, description builder, Vision service, meal category detection, and JSON export.

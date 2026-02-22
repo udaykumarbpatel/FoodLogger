@@ -1,9 +1,11 @@
 import SwiftUI
+import SwiftData
 import UserNotifications
 
 struct SettingsView: View {
     let hasLoggedToday: Bool
 
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
     private let notificationService = NotificationService()
@@ -11,6 +13,8 @@ struct SettingsView: View {
     @State private var remindersEnabled: Bool
     @State private var reminderTime: Date
     @State private var showPermissionDeniedAlert = false
+    @State private var showEmptyExportAlert = false
+    @State private var exportItem: ExportItem?
 
     init(hasLoggedToday: Bool) {
         self.hasLoggedToday = hasLoggedToday
@@ -30,6 +34,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: Notifications
                 Section {
                     Toggle("Daily Reminder", isOn: $remindersEnabled)
                         .onChange(of: remindersEnabled) { _, enabled in
@@ -53,6 +58,17 @@ struct SettingsView: View {
                         Text("You'll be reminded each day unless you've already logged a meal.")
                     }
                 }
+
+                // MARK: Data
+                Section {
+                    Button("Export Data") {
+                        exportAllEntries()
+                    }
+                } header: {
+                    Text("Data")
+                } footer: {
+                    Text("Exports all entries as a JSON file you can save or share.")
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -71,8 +87,39 @@ struct SettingsView: View {
             } message: {
                 Text("Enable notifications in Settings to receive daily reminders.")
             }
+            .alert("Nothing to Export", isPresented: $showEmptyExportAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("You haven't logged any entries yet.")
+            }
+            .sheet(item: $exportItem) { item in
+                ShareSheet(activityItems: [item.url])
+            }
         }
     }
+
+    // MARK: - Export
+
+    private func exportAllEntries() {
+        let descriptor = FetchDescriptor<FoodEntry>(
+            sortBy: [SortDescriptor(\.createdAt)]
+        )
+        let entries = (try? modelContext.fetch(descriptor)) ?? []
+
+        guard !entries.isEmpty else {
+            showEmptyExportAlert = true
+            return
+        }
+
+        guard let data = try? ExportService.jsonData(from: entries) else { return }
+
+        let filename = ExportService.filename()
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        try? data.write(to: url)
+        exportItem = ExportItem(url: url)
+    }
+
+    // MARK: - Notifications
 
     private func applyNotificationSettings(enabled: Bool) async {
         let defaults = UserDefaults.standard
@@ -92,4 +139,23 @@ struct SettingsView: View {
             notificationService.cancelAll()
         }
     }
+}
+
+// MARK: - Helpers
+
+/// Identifiable wrapper so .sheet(item:) can present the share sheet
+private struct ExportItem: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+/// Thin UIViewControllerRepresentable wrapping UIActivityViewController
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
