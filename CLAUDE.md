@@ -1,4 +1,6 @@
-# FoodLogger — Claude Project Memory
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What this project is
 Native iOS food diary app. Users log meals by text, voice, or photo. Plain-text descriptions only — no calories or macros. 100% on-device; zero network requests.
@@ -67,8 +69,16 @@ FoodLogger/                     ← git root & Xcode project root
 # Build
 xcodebuild -scheme FoodLogger -destination "platform=iOS Simulator,name=iPhone 17 Pro" build
 
-# Test (24 tests, all pass)
+# Run all tests (25 tests, all pass)
 xcodebuild test -scheme FoodLogger -destination "platform=iOS Simulator,name=iPhone 17 Pro"
+
+# Run a single test class
+xcodebuild test -scheme FoodLogger -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
+  -only-testing:FoodLoggerTests/FoodDescriptionBuilderTests
+
+# Run a single test method
+xcodebuild test -scheme FoodLogger -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
+  -only-testing:FoodLoggerTests/FoodDescriptionBuilderTests/testEmptyInput
 ```
 
 Available simulators: iPhone 17 Pro, iPhone 17 Pro Max, iPhone Air, iPhone 16e, iPad (A16), iPad Air 11/13-inch (M3), iPad Pro 11/13-inch (M5), iPad mini (A17 Pro). All run iOS 26.2.
@@ -80,9 +90,14 @@ Available simulators: iPhone 17 Pro, iPhone 17 Pro Max, iPhone Air, iPhone 16e, 
 - `INFOPLIST_KEY_NSPhotoLibraryUsageDescription`
 
 ## Test suite notes
-- **FoodDescriptionBuilderTests** and **FoodEntryModelTests** use Swift Testing (`@Test`, `#expect`)
-- **VisionServiceTests** uses XCTest — Swift Testing's 1-second async timeout (caused by `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`) kills Vision tests before the model initialises. `VNClassifyImageRequest` may not be available on the iOS 26.2 simulator beta; Vision tests skip gracefully rather than failing.
+- **FoodDescriptionBuilderTests** (12 tests) and **FoodEntryModelTests** (9 tests) use Swift Testing (`@Test`, `#expect`) and `@MainActor`
+- **VisionServiceTests** (4 tests) uses XCTest — Swift Testing's 1-second async timeout (caused by `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`) kills Vision tests before the model initialises. `VNClassifyImageRequest` may not be available on the iOS 26.2 simulator beta; Vision tests skip gracefully rather than failing.
 - SwiftData tests use `ModelConfiguration(isStoredInMemoryOnly: true)` for full isolation
+
+## Service architecture
+- **SpeechService**: `@Observable @MainActor` class. Uses a private `SpeechRecognizerDelegate: NSObject` bridge for AVAudioEngine/SFSpeechRecognizer callbacks. Configures AVAudioSession with `.record` category, `.measurement` mode, `.duckOthers`. Uses `#if targetEnvironment(simulator)` to disable on-device recognition on simulator.
+- **VisionService**: `final class VisionService: Sendable` with **no actor isolation** — stateless wrapper; `nonisolated` async method runs Vision on `DispatchQueue.global(qos: .userInitiated)` via `withCheckedThrowingContinuation`. Filters results to confidence > 0.3, top 3 labels.
+- **FoodDescriptionBuilder**: `@MainActor` stateless class. Text/voice paths use `NLTagger(.lexicalClass)` to extract nouns and adjectives; Vision path cleans labels (underscores → spaces, strips parenthetical qualifiers).
 
 ## Known simulator limitations
 - `SFSpeechRecognizer` with `requiresOnDeviceRecognition = true` fails on simulator → guarded with `#if targetEnvironment(simulator)` to fall back to server recognition
