@@ -15,7 +15,6 @@ struct InsightsView: View {
 
     let entries: [FoodEntry]
 
-    @Environment(\.dismiss) private var dismiss
     @State private var selectedPeriod: AnalyticsPeriod = .month
     @State private var heatmapMonth: Date = Date()
     @State private var searchText: String = ""
@@ -137,11 +136,6 @@ struct InsightsView: View {
             }
             .navigationTitle("Insights")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
         }
     }
 

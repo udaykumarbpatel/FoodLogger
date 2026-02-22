@@ -58,6 +58,14 @@ struct AddEntryView: View {
             case .image: "camera.fill"
             }
         }
+
+        var isBeta: Bool {
+            switch self {
+            case .text:  false
+            case .voice: true
+            case .image: true
+            }
+        }
     }
 
     // MARK: - Init
@@ -230,6 +238,8 @@ struct AddEntryView: View {
 
     private var voiceInputView: some View {
         VStack(spacing: 20) {
+            BetaBanner(message: "Voice recognition may not always be accurate. Review the transcript before saving.")
+
             // Permission / generic error
             if let error = speechError {
                 Text(error)
@@ -305,6 +315,8 @@ struct AddEntryView: View {
 
     private var imageInputView: some View {
         VStack(spacing: 16) {
+            BetaBanner(message: "Photo recognition is experimental and may produce inaccurate descriptions. Edit before saving.")
+
             // Photo picker + camera buttons
             HStack(spacing: 12) {
                 PhotosPicker(
@@ -584,6 +596,32 @@ struct AddEntryView: View {
     }
 }
 
+// MARK: - Beta Banner
+
+private struct BetaBanner: View {
+    let message: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text("β")
+                .font(.system(size: 10, weight: .bold))
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Capsule().fill(Color.orange.opacity(0.15)))
+                .foregroundStyle(.orange)
+
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
+    }
+}
+
 // MARK: - Capsule Mode Selector
 
 private struct CapsuleModeSelector: View {
@@ -602,6 +640,18 @@ private struct CapsuleModeSelector: View {
                             .font(.caption.weight(.semibold))
                         Text(mode.rawValue)
                             .font(.subheadline.weight(.semibold))
+                        if mode.isBeta {
+                            Text("β")
+                                .font(.system(size: 9, weight: .bold))
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule().fill(selectedMode == mode
+                                        ? Color.white.opacity(0.25)
+                                        : Color.accentColor.opacity(0.15))
+                                )
+                                .foregroundStyle(selectedMode == mode ? .white : .accentColor)
+                        }
                     }
                     .foregroundStyle(selectedMode == mode ? .white : .secondary)
                     .frame(maxWidth: .infinity)

@@ -6,7 +6,6 @@ struct SettingsView: View {
     let hasLoggedToday: Bool
 
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
 
     private let notificationService = NotificationService()
 
@@ -16,6 +15,7 @@ struct SettingsView: View {
     @State private var showEmptyExportAlert = false
     @State private var exportItem: ExportItem?
     @State private var showClearSampleConfirm = false
+    @State private var showClearOnlyConfirm = false
 
     init(hasLoggedToday: Bool) {
         self.hasLoggedToday = hasLoggedToday
@@ -74,22 +74,20 @@ struct SettingsView: View {
                 #if DEBUG
                 Section {
                     Button("Clear Sample Data", role: .destructive) {
+                        showClearOnlyConfirm = true
+                    }
+                    Button("Clear & Re-seed", role: .destructive) {
                         showClearSampleConfirm = true
                     }
                 } header: {
                     Text("Developer")
                 } footer: {
-                    Text("Deletes all entries with the [SAMPLE] prefix, then re-seeds.")
+                    Text("Clear removes all [SAMPLE] entries. Clear & Re-seed also inserts a fresh batch.")
                 }
                 #endif
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
             .alert("Notifications Disabled", isPresented: $showPermissionDeniedAlert) {
                 Button("Open Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -105,13 +103,21 @@ struct SettingsView: View {
             } message: {
                 Text("You haven't logged any entries yet.")
             }
-            .alert("Clear Sample Data?", isPresented: $showClearSampleConfirm) {
+            .alert("Clear Sample Data?", isPresented: $showClearOnlyConfirm) {
+                Button("Clear", role: .destructive) {
+                    clearSampleData()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will delete all [SAMPLE] entries. No new data will be added.")
+            }
+            .alert("Clear & Re-seed?", isPresented: $showClearSampleConfirm) {
                 Button("Clear & Re-seed", role: .destructive) {
                     clearAndReseedSampleData()
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This will delete all [SAMPLE] entries and create fresh sample data.")
+                Text("This will delete all [SAMPLE] entries and insert a fresh batch of sample data.")
             }
             .sheet(item: $exportItem) { item in
                 ShareSheet(activityItems: [item.url])
@@ -164,14 +170,17 @@ struct SettingsView: View {
     // MARK: - Debug
 
     #if DEBUG
-    private func clearAndReseedSampleData() {
+    private func clearSampleData() {
         let descriptor = FetchDescriptor<FoodEntry>()
         let all = (try? modelContext.fetch(descriptor)) ?? []
-        let samples = all.filter { $0.rawInput.hasPrefix("[SAMPLE]") }
-        for entry in samples {
+        for entry in all.filter({ $0.rawInput.hasPrefix("[SAMPLE]") }) {
             modelContext.delete(entry)
         }
         try? modelContext.save()
+    }
+
+    private func clearAndReseedSampleData() {
+        clearSampleData()
         SampleDataService().seed(context: modelContext)
     }
     #endif
