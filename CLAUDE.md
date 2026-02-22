@@ -67,7 +67,7 @@ FoodLogger/                     ← git root & Xcode project root
     Views/CalendarView.swift      ← legacy month-grid sheet (kept for reference; navigation now uses CalendarTabView)
     Views/SearchView.swift        ← full-text search sheet; tapping a result navigates + highlights entry
     Views/SummaryView.swift       ← weekly/monthly grouped entry list sheet
-    Views/SettingsView.swift      ← Tab 4: daily reminder toggle + time picker + JSON export; #if DEBUG "Clear Sample Data" section
+    Views/SettingsView.swift      ← Tab 4: daily reminder toggle + time picker + JSON export; #if DEBUG "Clear Sample Data" + "Clear & Re-seed" section
     Views/InsightsView.swift      ← Tab 3: analytics dashboard: 8 Swift Charts cards + period picker
     Views/StyleGuide.swift        ← shared: Font extensions (.appBody/.appTitle/.appCaption/.appHeadline/.appSubheadline), CardModifier + .cardStyle(), EmptyStateView
     Services/SpeechService.swift
@@ -176,9 +176,10 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 - **Note:** `MealCategory.color` and `MealCategory.icon` are defined in `Models/MealCategory.swift` — do NOT redefine them in StyleGuide.swift.
 
 ## SettingsView architecture
-- Three sections: **Notifications** (daily reminder toggle + time picker), **Data** (Export Data button), and **Developer** (`#if DEBUG` only — "Clear Sample Data" destructive button with confirmation alert)
+- Three sections: **Notifications** (daily reminder toggle + time picker), **Data** (Export Data button), and **Developer** (`#if DEBUG` only — two destructive buttons with separate confirmation alerts)
 - **Export flow:** fetches all `FoodEntry` records via `modelContext`, calls `ExportService.jsonData(from:)` + `ExportService.filename()`, writes to a temp file, then presents a `ShareSheet` (thin `UIActivityViewController` wrapper) via `.sheet(item: $exportItem)`. If no entries exist, shows a "Nothing to Export" alert instead.
-- **Clear Sample Data (DEBUG):** fetches all entries, deletes those with `rawInput.hasPrefix("[SAMPLE]")`, saves, then calls `SampleDataService().seed(context:)` (unconditional — not `seedIfNeeded`) to guarantee re-seeding even when real entries coexist. Requires confirmation alert before deletion.
+- **Clear Sample Data (DEBUG):** fetches all entries, deletes those with `rawInput.hasPrefix("[SAMPLE]")`, saves. No re-seeding.
+- **Clear & Re-seed (DEBUG):** calls `clearSampleData()` then `SampleDataService().seed(context:)` (unconditional — not `seedIfNeeded`) to guarantee re-seeding even when real entries coexist. Each action requires its own confirmation alert before proceeding.
 - `ExportItem`: private `Identifiable` struct wrapping the temp `URL`, used as the `.sheet(item:)` binding.
 - `ShareSheet`: `UIViewControllerRepresentable` defined in `SettingsView.swift`; reusable if needed elsewhere.
 

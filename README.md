@@ -7,22 +7,24 @@ A native iOS food diary app. Log what you ate — by typing, speaking, or photog
 | Mode | How it works |
 |------|-------------|
 | **Text** | Type a free-form description of your meal |
-| **Voice** | Record yourself speaking; transcribed on-device via `SFSpeechRecognizer` |
-| **Photo** | Pick from library or take a photo; classified on-device via `VNClassifyImageRequest` |
+| **Voice** *(Beta)* | Record yourself speaking; transcribed on-device via `SFSpeechRecognizer` |
+| **Photo** *(Beta)* | Pick from library or take a photo; classified on-device via `VNClassifyImageRequest` |
 
 - AI-generated description shown before saving — edit it before committing
 - Auto-detected meal categories (Breakfast, Lunch, Snack, Dinner, Dessert, Beverage) with manual override
+- Bottom tab bar navigation: Today, Calendar, Insights, Settings
 - Day log home screen — swipe left/right to move between days
 - Swipe left on an entry to delete or edit; full swipe deletes instantly
 - Long-press for context menu: edit, "I ate it today" / "I ate again", delete
-- Calendar sheet to browse and navigate to any past day
+- Full-screen calendar tab to browse and navigate to any past day
 - Full-text search across all entries
 - Weekly and monthly summary view
 - Consecutive-day streak counter
+- Analytics dashboard (Insights tab): top foods, daily activity, category breakdown, meal timing, week-over-week comparison, monthly heatmap, food search, stats card
+- Weekly Recap: 6-page animated recap shown every Monday on launch and via Sunday 7 pm push notification
 - Daily reminder notifications (skips days you've already logged)
 - Export all entries as a JSON file (share or save via the standard iOS share sheet)
 - Home screen quick actions: "Log Food Now" and "View Today"
-- Expand an entry card to see the original input or image thumbnail
 - Full Dark Mode support
 - 100% offline — zero network requests
 
@@ -36,6 +38,7 @@ A native iOS food diary app. Log what you ate — by typing, speaking, or photog
 | Speech | `Speech` framework — `SFSpeechRecognizer` with `requiresOnDeviceRecognition` |
 | Vision | `Vision` framework — `VNClassifyImageRequest` |
 | NLP | `NaturalLanguage` framework — `NLTagger` noun/adjective extraction |
+| Charts | `Charts` framework — Swift Charts |
 | Camera / Photos | `AVFoundation` + `PhotosUI` |
 | Notifications | `UserNotifications` framework |
 
@@ -44,32 +47,45 @@ A native iOS food diary app. Log what you ate — by typing, speaking, or photog
 ```
 FoodLogger/
 ├── App/
-│   └── FoodLoggerApp.swift          # @main, SwiftData ModelContainer, AppDelegate, quick actions
+│   └── FoodLoggerApp.swift          # @main, SwiftData ModelContainer, AppDelegate, quick actions, Monday recap trigger
 ├── Models/
 │   ├── FoodEntry.swift              # @Model — id, date, rawInput, inputType, processedDescription, mediaURL, category, updatedAt
 │   └── MealCategory.swift           # enum — breakfast, lunch, snack, dinner, dessert, beverage
 ├── Views/
-│   ├── DayLogView.swift             # Home screen (shell + body pattern), streak badge, toolbar navigation
-│   ├── AddEntryView.swift           # Text / Voice / Photo input + edit mode
-│   ├── EntryCardView.swift          # Expandable journal-style card with category badge
+│   ├── AppShellView.swift           # 4-tab outer TabView; weekly recap deep-link listener
+│   ├── TodayTabView.swift           # Gradient banner + DayLogView
+│   ├── CalendarTabView.swift        # Full-screen split calendar + inline day entries
+│   ├── DayLogView.swift             # Home screen (shell + body pattern), streak badge, search toolbar
+│   ├── AddEntryView.swift           # Text / Voice (β) / Photo (β) input + edit mode; beta banners
+│   ├── EntryCardView.swift          # Card with colored left bar, category badge menu, "edited" label
 │   ├── CalendarView.swift           # Month-grid sheet for date navigation
 │   ├── SearchView.swift             # Full-text search across all entries
 │   ├── SummaryView.swift            # Weekly / monthly grouped entry list
-│   └── SettingsView.swift           # Daily reminder toggle + time picker + JSON export
+│   ├── InsightsView.swift           # Analytics dashboard — 8 Swift Charts cards + period picker
+│   ├── WeeklyRecapView.swift        # 6-page animated weekly recap (Hero, Stats, Top Food, Categories, Consistency, Share)
+│   ├── StyleGuide.swift             # Font extensions, CardModifier, EmptyStateView
+│   └── SettingsView.swift           # Notifications, JSON export, Developer tools (DEBUG)
 └── Services/
     ├── SpeechService.swift          # On-device speech recognition & live transcript
     ├── VisionService.swift          # On-device image classification
     ├── FoodDescriptionBuilder.swift # NLTagger noun extraction + Vision label cleaning
     ├── CategoryDetectionService.swift # Content-first meal category auto-detection
     ├── StreakService.swift           # Consecutive-day streak computation
-    ├── NotificationService.swift    # Daily reminder scheduling via UNUserNotificationCenter
-    └── ExportService.swift          # JSON serialisation + filename generation
+    ├── NotificationService.swift    # Daily reminders + Sunday weekly recap notification
+    ├── ExportService.swift          # JSON serialisation + filename generation
+    ├── InsightsService.swift        # Typed analytics over [FoodEntry] — 8 methods, 5 periods
+    ├── WeeklySummaryService.swift   # WeeklySummary computation + headline/subheadline generation
+    └── SampleDataService.swift      # 120-day deterministic sample data seeding
 FoodLoggerTests/
     ├── FoodDescriptionBuilderTests.swift  (12 tests)
     ├── FoodEntryModelTests.swift          (9 tests)
     ├── VisionServiceTests.swift           (4 tests)
-    ├── MealCategoryTests.swift            (35 tests)
-    └── ExportServiceTests.swift           (20 tests)
+    ├── MealCategoryTests.swift            (47 tests)
+    ├── ExportServiceTests.swift           (20 tests)
+    ├── InsightsServiceTests.swift         (37 tests)
+    ├── SampleDataServiceTests.swift       (10 tests)
+    ├── WeeklySummaryServiceTests.swift    (25 tests)
+    └── NotificationRecapTests.swift       (15 tests)
 ```
 
 ## Requirements
@@ -88,7 +104,7 @@ The app requests the following permissions on first use:
 | Speech Recognition | Transcribe recordings on-device |
 | Camera | Photograph meals |
 | Photo Library | Log meals from existing photos |
-| Notifications | Daily meal-logging reminders |
+| Notifications | Daily meal-logging reminders + weekly recap |
 
 ## Running
 
@@ -106,4 +122,4 @@ xcodebuild test \
   -destination "platform=iOS Simulator,name=iPhone 17 Pro"
 ```
 
-75 tests across 5 suites covering the data model, description builder, Vision service, meal category detection, and JSON export.
+179 tests across 9 suites covering the data model, description builder, Vision service, meal category detection, JSON export, analytics, sample data seeding, weekly summary, and notification scheduling.
