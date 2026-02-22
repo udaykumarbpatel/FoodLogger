@@ -10,7 +10,7 @@ final class NotificationService {
     }
 
     func scheduleReminders(at time: Date, hasLoggedToday: Bool) async {
-        await center.removeAllPendingNotificationRequests()
+        center.removeAllPendingNotificationRequests()
 
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -49,6 +49,30 @@ final class NotificationService {
             )
             try? await center.add(request)
         }
+    }
+
+    func scheduleWeeklyRecap(summary: WeeklySummary) async {
+        // Remove any existing weekly recap notification before scheduling
+        center.removePendingNotificationRequests(withIdentifiers: ["weekly-recap"])
+
+        var components = DateComponents()
+        components.weekday = 1   // Sunday (1 = Sunday in Gregorian calendar)
+        components.hour = 19     // 7:00 PM
+        components.minute = 0
+
+        let content = UNMutableNotificationContent()
+        content.title = "Your Week in Review 📊"
+        content.body = summary.headline
+        content.sound = .default
+        content.userInfo = ["action": "weeklyRecap"]
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        let request = UNNotificationRequest(
+            identifier: "weekly-recap",
+            content: content,
+            trigger: trigger
+        )
+        try? await center.add(request)
     }
 
     func cancelAll() {

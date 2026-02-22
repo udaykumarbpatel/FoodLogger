@@ -6,6 +6,8 @@ import SwiftData
 struct AppShellView: View {
     @Query private var allEntries: [FoodEntry]
     private let streakService = StreakService()
+    @State private var showWeeklyRecap = false
+    @State private var weeklyRecapSummary: WeeklySummary?
 
     private var streakInfo: StreakService.StreakInfo {
         streakService.compute(from: allEntries)
@@ -32,6 +34,15 @@ struct AppShellView: View {
                 .tabItem {
                     Label("Settings", systemImage: "gearshape")
                 }
+        }
+        .fullScreenCover(isPresented: $showWeeklyRecap) {
+            if let summary = weeklyRecapSummary {
+                WeeklyRecapView(summary: summary)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openWeeklyRecap)) { _ in
+            weeklyRecapSummary = WeeklySummaryService().generateSummary(from: allEntries)
+            showWeeklyRecap = true
         }
     }
 }

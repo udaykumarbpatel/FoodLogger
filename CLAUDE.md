@@ -54,10 +54,11 @@ let absolute = docsDir.appendingPathComponent(mediaURL.absoluteString) // use .a
 ```
 FoodLogger/                     ← git root & Xcode project root
   FoodLogger/                   ← app source (file-system sync root)
-    App/FoodLoggerApp.swift       ← @main; AppDelegate for quick actions; Notification.Name extensions
+    App/FoodLoggerApp.swift       ← @main; AppDelegate (UIApplicationDelegate + UNUserNotificationCenterDelegate); quick actions; Notification.Name extensions (.quickAction, .openAddEntry, .openWeeklyRecap); AppRootView with Monday recap trigger
     Models/FoodEntry.swift
     Models/MealCategory.swift     ← enum MealCategory (breakfast/lunch/snack/dinner/dessert/beverage); has .color and .icon
-    Views/AppShellView.swift      ← ROOT: outer TabView with 4 tabs (Today/Calendar/Insights/Settings); owns @Query allEntries for Insights+Settings
+    Views/AppShellView.swift      ← ROOT: outer TabView with 4 tabs (Today/Calendar/Insights/Settings); owns @Query allEntries; listens for .openWeeklyRecap → presents WeeklyRecapView as fullScreenCover
+    Views/WeeklyRecapView.swift   ← 6-page fullScreenCover recap (Hero/Stats/TopFood/Categories/Consistency/Share); Canvas confetti on perfect week; ImageRenderer share card
     Views/TodayTabView.swift      ← Tab 1: NavigationStack wrapping DayLogView + gradient banner (greeting, streak, today count)
     Views/DayLogView.swift        ← swipe-between-days shell (DayLogView) + entry list body (DayLogBody); toolbar: search + today only
     Views/CalendarTabView.swift   ← Tab 2: full-screen calendar (month grid top half, inline day entries bottom half)
@@ -74,7 +75,8 @@ FoodLogger/                     ← git root & Xcode project root
     Services/FoodDescriptionBuilder.swift
     Services/CategoryDetectionService.swift  ← @MainActor; detect(hour:description:visionLabels:)
     Services/StreakService.swift             ← struct; compute(from:[FoodEntry]) -> StreakInfo
-    Services/NotificationService.swift      ← @MainActor; schedules 14 individual daily reminders
+    Services/NotificationService.swift      ← @MainActor; schedules 14 individual daily reminders (identifier "daily-reminder-{offset}"); scheduleWeeklyRecap(summary:) for Sunday 7pm (identifier "weekly-recap", repeats: true)
+    Services/WeeklySummaryService.swift     ← @MainActor final class; generateSummary(from:) -> WeeklySummary; generateHeadline/generateSubheadline; HeadlineType enum (streak/topFood/improvement/perfect/default)
     Services/ExportService.swift            ← pure struct; jsonData(from:) + filename(for:); no actor isolation
     Services/InsightsService.swift          ← @MainActor final class; typed analytics over [FoodEntry]; see below
     Services/SampleDataService.swift        ← @MainActor final class; seedIfNeeded(context:) + seed(context:); 120 days of realistic sample data
@@ -86,6 +88,8 @@ FoodLogger/                     ← git root & Xcode project root
     ExportServiceTests.swift            (Swift Testing — 20 tests for ExportService)
     InsightsServiceTests.swift          (Swift Testing — 37 tests for InsightsService)
     SampleDataServiceTests.swift        (Swift Testing — 10 tests for SampleDataService)
+    WeeklySummaryServiceTests.swift     (Swift Testing — 25 tests for WeeklySummaryService)
+    NotificationRecapTests.swift        (Swift Testing — 15 tests for weekly recap notification)
   FoodLogger.xcodeproj/
 ```
 
@@ -184,7 +188,8 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 - **FoodDescriptionBuilder**: `@MainActor` stateless class. Text/voice paths use `NLTagger(.lexicalClass)` to extract nouns and adjectives; Vision path cleans labels (underscores → spaces, strips parenthetical qualifiers).
 - **CategoryDetectionService**: `@MainActor final class`. Single method `detect(hour:description:visionLabels:) -> MealCategory`. All six categories have dedicated `Set<String>` keyword lists checked in priority order (beverage → dessert → breakfast → lunch → snack → dinner); a keyword match returns immediately with no time-bucket consultation. Time buckets (5–10 breakfast, 11–14 lunch, 15–16 snack, 17–20 dinner, else snack) are only reached when zero keywords match across description and visionLabels tokens. Uses `Set<String>` for O(1) lookup; tokenises by splitting on whitespace and commas, lowercased. Keyword sets include Indian/South Indian vocabulary (idli, dosa, biryani, lassi, samosa, tikka, kheer, etc.) so those foods are categorised by content rather than falling through to the time bucket.
 - **StreakService**: `struct`. `compute(from: [FoodEntry]) -> StreakInfo` builds a `Set<Date>` of days with entries then counts consecutive days backward from today (or yesterday if no entry today).
-- **NotificationService**: `@MainActor final class`. `scheduleReminders(at:hasLoggedToday:)` removes all pending requests then schedules 14 individual non-repeating `UNCalendarNotificationTrigger` notifications (one per day), skipping today if already logged and skipping past times. **Why 14:** iOS caps an app at 64 pending notifications; 14 covers two weeks of daily reminders while leaving ~50 slots free for other future notification types. The window is rescheduled from scratch on every call so it always stays current.
+- **NotificationService**: `@MainActor final class`. `scheduleReminders(at:hasLoggedToday:)` removes all pending requests then schedules 14 individual non-repeating `UNCalendarNotificationTrigger` notifications (one per day), skipping today if already logged and skipping past times. **Why 14:** iOS caps an app at 64 pending notifications; 14 covers two weeks of daily reminders while leaving ~50 slots free for other future notification types. The window is rescheduled from scratch on every call so it always stays current. `scheduleWeeklyRecap(summary:)` schedules a repeating Sunday 7pm notification (identifier `"weekly-recap"`) with `summary.headline` as the body, replacing any existing recap notification without disturbing daily reminders.
+- **WeeklySummaryService**: `@MainActor final class`. `generateSummary(from: [FoodEntry]) -> WeeklySummary` computes Mon–Sun ISO week window, filters entries to this/last week, and returns a `WeeklySummary` with all analytics. `HeadlineType` priority: `.streak` (streak > 7) → `.topFood` (topFoodCount ≥ 3) → `.improvement` (vsLastWeek > 3) → `.perfect` (missedDays == 0) → `.default`. Tokeniser strips stopwords matching `InsightsService` and tokens shorter than 3 chars.
 - **InsightsService**: `@MainActor final class`. Accepts `[FoodEntry]`, returns typed analytics structs. Key types: `AnalyticsPeriod` (week/month/threeMonths/year/allTime), `FoodItemFrequency`, `DailyCount`, `CategoryCount`, `InputTypeCount`, `HourCount`, `WeekComparison`, `DayActivity`, `ItemPair` (all `Identifiable` except `WeekComparison`). Methods: `topItems`, `dailyCounts`, `categoryDistribution`, `inputTypeBreakdown`, `mealTiming`, `weekOverWeekTrend`, `monthlyHeatmap`, `coOccurrence`. Strips stopwords: a, the, and, with, of, in, for, had, ate, some, my, an.
 - **SampleDataService**: `@MainActor final class`. Two public methods: `seedIfNeeded(context:)` — no-op if any `FoodEntry` exists (used on first launch); `seed(context:)` — unconditional, always inserts a full batch (used by "Clear & Re-seed" in Settings). Seeds 120 days of data (~85% of days have 1–3 entries), all 6 categories, all 3 input types, 35+ realistic food items, every `rawInput` prefixed with `[SAMPLE]`. Uses deterministic LCG (`SeededRNG`) for reproducible output. Image entries have `mediaURL = nil`.
 
