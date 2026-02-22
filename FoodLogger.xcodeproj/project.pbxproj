@@ -331,6 +331,8 @@
 				DEVELOPMENT_TEAM = AZ27GAYSY2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Food Logger";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
 				INFOPLIST_KEY_NSCameraUsageDescription = "FoodLogger uses the camera to photograph your meals.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "FoodLogger uses the microphone to record your meal descriptions.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FoodLogger accesses your photo library so you can log meals from existing photos.";
@@ -367,6 +369,8 @@
 				DEVELOPMENT_TEAM = AZ27GAYSY2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Food Logger";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
 				INFOPLIST_KEY_NSCameraUsageDescription = "FoodLogger uses the camera to photograph your meals.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "FoodLogger uses the microphone to record your meal descriptions.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "FoodLogger accesses your photo library so you can log meals from existing photos.";

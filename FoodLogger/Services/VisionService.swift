@@ -1,10 +1,12 @@
 import Foundation
 import Vision
-import UIKit
 
 // VisionService intentionally has NO actor isolation.
 // Vision's perform() is synchronous and blocking — it must run off the main thread.
 // Being nonisolated means callers can await it from any actor without deadlock.
+//
+// Accepts CGImage + CGImagePropertyOrientation rather than UIImage so that
+// UIImage property access (which is MainActor-bound in Swift 6) stays with the caller.
 final class VisionService: Sendable {
 
     enum VisionError: Error, LocalizedError {
@@ -15,15 +17,14 @@ final class VisionService: Sendable {
         }
     }
 
-    /// Classifies a UIImage using Vision's on-device model.
-    /// Runs on a background thread; safe to call from MainActor.
-    nonisolated func classifyImage(_ image: UIImage) async throws -> [String] {
-        guard let cgImage = image.cgImage else {
-            throw VisionError.invalidImage
-        }
-        let orientation = CGImagePropertyOrientation(image.imageOrientation)
-
-        // Run synchronous Vision work on a background thread via unstructured task
+    /// Classifies an image using Vision's on-device model.
+    /// The caller (on MainActor) must extract cgImage and orientation from UIImage
+    /// before calling this method.
+    /// Runs on a background thread; safe to call from any actor.
+    nonisolated func classifyImage(
+        cgImage: CGImage,
+        orientation: CGImagePropertyOrientation
+    ) async throws -> [String] {
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let request = VNClassifyImageRequest()
@@ -43,24 +44,6 @@ final class VisionService: Sendable {
                     continuation.resume(throwing: error)
                 }
             }
-        }
-    }
-}
-
-// MARK: - UIImage orientation → CGImagePropertyOrientation
-
-private extension CGImagePropertyOrientation {
-    init(_ uiOrientation: UIImage.Orientation) {
-        switch uiOrientation {
-        case .up:            self = .up
-        case .upMirrored:    self = .upMirrored
-        case .down:          self = .down
-        case .downMirrored:  self = .downMirrored
-        case .left:          self = .left
-        case .leftMirrored:  self = .leftMirrored
-        case .right:         self = .right
-        case .rightMirrored: self = .rightMirrored
-        @unknown default:    self = .up
         }
     }
 }

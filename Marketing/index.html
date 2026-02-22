@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="FoodLogger — a native iOS food diary. Log meals by text, voice, or photo. No calories. No cloud. 100% on-device." />
+  <title>FoodLogger — Your food diary. No calories. No fluff. No cloud.</title>
+  <style>
+    /* ─── Reset & base ─────────────────────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #F7F3EE;
+      color: #1B1F3B;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ─── Design tokens ────────────────────────────────────────────────── */
+    :root {
+      --navy:   #1B1F3B;
+      --orange: #FF6B35;
+      --orange-dark: #E55A25;
+      --amber:  #FFB347;
+      --cream:  #F7F3EE;
+      --green:  #2ECC71;
+      --white:  #FFFFFF;
+      --white-80: rgba(255,255,255,0.80);
+      --white-50: rgba(255,255,255,0.50);
+      --white-12: rgba(255,255,255,0.12);
+      --navy-08: rgba(27,31,59,0.08);
+      --navy-16: rgba(27,31,59,0.16);
+
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-full: 9999px;
+
+      --space-xs:  8px;
+      --space-sm:  16px;
+      --space-md:  32px;
+      --space-lg:  64px;
+      --space-xl:  96px;
+
+      --max-w: 1120px;
+    }
+
+    /* ─── Utility ──────────────────────────────────────────────────────── */
+    .container {
+      width: 100%;
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 var(--space-sm);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+    }
+
+    /* ─── Typography scale ─────────────────────────────────────────────── */
+    .t-display {
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+
+    .t-title {
+      font-size: clamp(1.5rem, 3vw, 2.25rem);
+      font-weight: 900;
+      letter-spacing: -0.015em;
+      line-height: 1.2;
+    }
+
+    .t-headline {
+      font-size: 1.125rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .t-body {
+      font-size: 1rem;
+      font-weight: 500;
+      line-height: 1.65;
+    }
+
+    .t-caption {
+      font-size: 0.8125rem;
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    /* ─── CTA Button ───────────────────────────────────────────────────── */
+    .btn-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--orange);
+      color: var(--white);
+      font-family: inherit;
+      font-size: 1.0625rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: none;
+      border-radius: var(--radius-full);
+      padding: 16px 36px;
+      cursor: pointer;
+      transition: background 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+      box-shadow: 0 4px 20px rgba(255,107,53,0.40);
+      letter-spacing: 0.01em;
+    }
+
+    .btn-cta:hover {
+      background: var(--orange-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(255,107,53,0.50);
+    }
+
+    .btn-cta:active {
+      transform: translateY(0);
+    }
+
+    /* App Store badge shape inside button */
+    .btn-cta .store-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      background: rgba(255,255,255,0.22);
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────
+       SECTION 1 — HERO
+    ───────────────────────────────────────────────────────────────────── */
+    #hero {
+      background: var(--navy);
+      color: var(--white);
+      padding: var(--space-xl) 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Subtle radial glow behind content */
+    #hero::before {
+      content: "";
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse at center, rgba(255,107,53,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    @media (min-width: 768px) {
+      .hero-inner {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-md);
+      }
+    }
+
+    .hero-copy {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--white-12);
+      border: 1px solid rgba(255,179,71,0.30);
+      border-radius: var(--radius-full);
+      padding: 5px 14px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--amber);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      width: fit-content;
+    }
+
+    .hero-eyebrow .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--amber);
+    }
+
+    .hero-headline {
+      color: var(--white);
+    }
+
+    .hero-headline .accent {
+      color: var(--orange);
+    }
+
+    .hero-subheadline {
+      color: var(--white-80);
+      font-size: 1.125rem;
+      font-weight: 400;
+      max-width: 500px;
+      line-height: 1.65;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-top: 8px;
+    }
+
+    .hero-trust {
+      font-size: 0.8125rem;
+      color: var(--white-50);
+      font-weight: 500;
+    }
+
+    /* ─── iPhone mockup ────────────────────────────────────────────────── */
+    .phone-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    @media (min-width: 768px) {
+      .phone-wrap {
+        justify-content: flex-end;
+      }
+    }
+
+    .phone {
+      position: relative;
+      width: 240px;
+      min-height: 480px;
+      background: #12162E;
+      border: 2.5px solid rgba(255,255,255,0.18);
+      border-radius: 40px;
+      padding: 20px 14px 24px;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.06),
+        0 40px 80px rgba(0,0,0,0.50),
+        inset 0 1px 0 rgba(255,255,255,0.10);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Dynamic Island pill */
+    .phone::before {
+      content: "";
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 22px;
+      background: #000;
+      border-radius: 12px;
+      z-index: 2;
+    }
+
+    /* Side button */
+    .phone::after {
+      content: "";
+      position: absolute;
+      top: 90px;
+      right: -4px;
+      width: 3px;
+      height: 36px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+    }
+
+    /* Volume buttons */
+    .phone-vol {
+      position: absolute;
+      left: -3px;
+      top: 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .phone-vol span {
+      display: block;
+      width: 3px;
+      height: 24px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+    }
+
+    .phone-status-bar {
+      height: 32px;
+    }
+
+    /* Screen label / nav bar inside phone */
+    .phone-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+      margin-bottom: 4px;
+    }
+
+    .phone-nav-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: 0.01em;
+    }
+
+    .phone-nav-btn {
+      width: 22px;
+      height: 22px;
+      background: var(--orange);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+      line-height: 1;
+    }
+
+    /* Streak badge */
+    .phone-streak {
+      background: linear-gradient(135deg, rgba(255,107,53,0.18), rgba(255,179,71,0.10));
+      border: 1px solid rgba(255,107,53,0.25);
+      border-radius: 12px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .phone-streak-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.60);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .phone-streak-count {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--orange);
+    }
+
+    /* Entry cards inside phone */
+    .phone-card {
+      background: rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 10px 10px 10px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      overflow: hidden;
+    }
+
+    .phone-card-bar {
+      width: 3px;
+      align-self: stretch;
+      border-radius: 2px;
+      margin-right: 9px;
+      flex-shrink: 0;
+    }
+
+    .phone-card-bar.lunch   { background: #FF6B35; }
+    .phone-card-bar.dinner  { background: #5B5FD9; }
+    .phone-card-bar.snack   { background: #FFB347; }
+
+    .phone-card-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .phone-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+
+    .phone-card-category {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(255,107,53,0.20);
+      color: var(--orange);
+    }
+
+    .phone-card-category.dinner-badge {
+      background: rgba(91,95,217,0.22);
+      color: #8B8FF8;
+    }
+
+    .phone-card-category.snack-badge {
+      background: rgba(255,179,71,0.20);
+      color: var(--amber);
+    }
+
+    .phone-card-time {
+      font-size: 9px;
+      color: rgba(255,255,255,0.38);
+      font-weight: 500;
+    }
+
+    .phone-card-text {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.88);
+      line-height: 1.3;
+    }
+
+    /* Tab bar inside phone */
+    .phone-tab-bar {
+      background: rgba(27,31,59,0.95);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      border-radius: 0 0 26px 26px;
+      padding: 8px 0 4px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin: auto -14px -24px -14px;
+    }
+
+    .phone-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 8px;
+    }
+
+    .phone-tab-icon {
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .phone-tab-label {
+      font-size: 8px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.38);
+      letter-spacing: 0.02em;
+    }
+
+    .phone-tab.active .phone-tab-icon,
+    .phone-tab.active .phone-tab-label {
+      color: var(--orange);
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────
+       SECTION 2 — THE PROBLEM
+    ───────────────────────────────────────────────────────────────────── */
+    #problem {
+      background: var(--cream);
+      padding: var(--space-xl) 0;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: var(--space-sm);
+    }
+
+    .section-header {
+      margin-bottom: var(--space-lg);
+    }
+
+    .section-header .t-title {
+      color: var(--navy);
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-sm);
+    }
+
+    @media (min-width: 640px) {
+      .problem-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+      }
+    }
+
+    .problem-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 28px 24px 32px;
+      border: 1px solid var(--navy-08);
+      box-shadow: 0 2px 12px var(--navy-08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .problem-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--orange), var(--amber));
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+
+    .problem-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: rgba(255,107,53,0.10);
+      border-radius: var(--radius-sm);
+      font-size: 1.25rem;
+      margin-bottom: 14px;
+      color: var(--orange);
+      font-weight: 900;
+      font-style: normal;
+    }
+
+    .problem-title {
+      font-size: 1.0625rem;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .problem-body {
+      font-size: 0.9375rem;
+      color: #5A5F7A;
+      font-weight: 400;
+      line-height: 1.65;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────
+       SECTION 3 — HOW IT WORKS
+    ───────────────────────────────────────────────────────────────────── */
+    #how-it-works {
+      background: var(--navy);
+      color: var(--white);
+      padding: var(--space-xl) 0;
+    }
+
+    #how-it-works .section-label {
+      color: var(--amber);
+    }
+
+    #how-it-works .section-header .t-title {
+      color: var(--white);
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-sm);
+    }
+
+    @media (min-width: 640px) {
+      .steps-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+      }
+    }
+
+    .step-card {
+      background: var(--white-12);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-md);
+      padding: 32px 24px;
+      position: relative;
+    }
+
+    .step-number {
+      font-size: 3.5rem;
+      font-weight: 900;
+      color: var(--orange);
+      line-height: 1;
+      margin-bottom: 16px;
+      letter-spacing: -0.03em;
+      display: block;
+    }
+
+    .step-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1.3;
+    }
+
+    .step-connector {
+      display: none;
+    }
+
+    @media (min-width: 640px) {
+      .steps-grid {
+        position: relative;
+      }
+    }
+
+    .steps-footer {
+      margin-top: var(--space-md);
+      text-align: center;
+    }
+
+    .steps-footer-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,107,53,0.15);
+      border: 1px solid rgba(255,107,53,0.30);
+      border-radius: var(--radius-full);
+      padding: 10px 22px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--orange);
+    }
+
+    .steps-footer-text .clock {
+      font-size: 1rem;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────
+       SECTION 4 — FEATURES
+    ───────────────────────────────────────────────────────────────────── */
+    #features {
+      background: var(--cream);
+      padding: var(--space-xl) 0;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-sm);
+    }
+
+    @media (min-width: 640px) {
+      .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+      }
+    }
+
+    .feature-tile {
+      background: var(--white);
+      border: 1px solid var(--navy-08);
+      border-radius: var(--radius-md);
+      padding: 24px 24px 26px;
+      box-shadow: 0 2px 12px var(--navy-08);
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .feature-tile:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px var(--navy-16);
+    }
+
+    .feature-icon-wrap {
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, rgba(255,107,53,0.12), rgba(255,179,71,0.08));
+      border: 1px solid rgba(255,107,53,0.15);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.375rem;
+    }
+
+    .feature-text {}
+
+    .feature-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-body {
+      font-size: 0.9rem;
+      color: #5A5F7A;
+      font-weight: 400;
+      line-height: 1.6;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────
+       SECTION 5 — PRIVACY BLOCK
+    ───────────────────────────────────────────────────────────────────── */
+    #privacy {
+      background: var(--navy);
+      color: var(--white);
+      padding: var(--space-xl) 0;
+      text-align: center;
+    }
+
+    .privacy-headline {
+      color: var(--white);
+      max-width: 700px;
+      margin: 0 auto var(--space-md);
+    }
+
+    .privacy-facts {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .privacy-fact {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--white-12);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: var(--radius-full);
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--white);
+      transition: background 0.15s ease;
+    }
+
+    .privacy-fact:hover {
+      background: rgba(255,255,255,0.16);
+    }
+
+    .privacy-fact .check {
+      color: var(--orange);
+      font-size: 1.125rem;
+      font-weight: 900;
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────
+       SECTION 6 — WEEKLY RECAP HIGHLIGHT
+    ───────────────────────────────────────────────────────────────────── */
+    #weekly-recap {
+      background: var(--cream);
+      padding: var(--space-xl) 0;
+    }
+
+    .recap-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .recap-card {
+      background: var(--white);
+      border: 1px solid var(--navy-08);
+      border-radius: var(--radius-lg);
+      padding: 40px 40px 36px;
+      box-shadow: 0 4px 24px var(--navy-08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media (max-width: 480px) {
+      .recap-card {
+        padding: 28px 20px 24px;
+      }
+    }
+
+    /* Decorative corner arc */
+    .recap-card::before {
+      content: "";
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 200px;
+      height: 200px;
+      border: 30px solid rgba(255,107,53,0.07);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .recap-card::after {
+      content: "";
+      position: absolute;
+      top: -20px;
+      right: -20px;
+      width: 100px;
+      height: 100px;
+      border: 20px solid rgba(255,179,71,0.08);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .recap-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,107,53,0.10);
+      border: 1px solid rgba(255,107,53,0.20);
+      border-radius: var(--radius-full);
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 14px;
+    }
+
+    .recap-header {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 900;
+      color: var(--navy);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 28px;
+    }
+
+    .recap-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .recap-list li {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    .recap-bullet {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, rgba(255,107,53,0.12), rgba(255,179,71,0.10));
+      border: 1px solid rgba(255,107,53,0.20);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+
+    .recap-footer {
+      border-top: 1px solid var(--navy-08);
+      padding-top: 20px;
+      font-size: 0.875rem;
+      color: #7A7F98;
+      font-weight: 500;
+      line-height: 1.55;
+    }
+
+    .recap-footer strong {
+      color: var(--navy);
+    }
+
+    /* ─────────────────────────────────────────────────────────────────────
+       FOOTER
+    ───────────────────────────────────────────────────────────────────── */
+    footer {
+      background: var(--navy);
+      color: var(--white);
+      padding: var(--space-lg) 0 var(--space-md);
+    }
+
+    .footer-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      text-align: center;
+    }
+
+    @media (min-width: 640px) {
+      .footer-inner {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: left;
+        align-items: flex-start;
+      }
+    }
+
+    .footer-brand {}
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .footer-logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--orange);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .footer-logo-name {
+      font-size: 1.125rem;
+      font-weight: 900;
+      color: var(--white);
+      letter-spacing: -0.01em;
+    }
+
+    .footer-tagline {
+      font-size: 0.875rem;
+      color: var(--white-50);
+      font-weight: 400;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    .footer-link {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: var(--white-50);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .footer-link:hover {
+      color: var(--white);
+    }
+
+    .footer-link-sep {
+      color: rgba(255,255,255,0.20);
+      font-size: 0.75rem;
+    }
+
+    .footer-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-end;
+    }
+
+    @media (max-width: 639px) {
+      .footer-meta {
+        align-items: center;
+      }
+    }
+
+    .footer-caption {
+      font-size: 0.8125rem;
+      color: var(--white-50);
+      font-weight: 400;
+    }
+
+    .footer-divider {
+      width: 100%;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin-top: 32px;
+    }
+
+    .footer-bottom {
+      padding-top: 20px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.25);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       SECTION 1 — HERO
+  ════════════════════════════════════════════════════════════════════ -->
+  <header id="hero" role="banner">
+    <div class="container">
+      <div class="hero-inner">
+
+        <!-- Left: copy -->
+        <div class="hero-copy">
+          <span class="hero-eyebrow">
+            <span class="dot" aria-hidden="true"></span>
+            Native iOS App
+          </span>
+
+          <h1 class="t-display hero-headline">
+            Your food diary.<br>
+            <span class="accent">No calories.</span><br>
+            No fluff. No cloud.
+          </h1>
+
+          <p class="hero-subheadline">
+            Log what you eat in seconds — by text, voice, or photo. Everything stays on your device.
+          </p>
+
+          <div class="hero-actions">
+            <a href="#" class="btn-cta" aria-label="Download FoodLogger on the App Store">
+              <span class="store-icon" aria-hidden="true">&#xf8ff;</span>
+              Download on the App Store
+            </a>
+          </div>
+
+          <p class="hero-trust">Free to download &bull; No account required &bull; Zero network requests</p>
+        </div>
+
+        <!-- Right: iPhone mockup -->
+        <div class="phone-wrap" aria-hidden="true" role="presentation">
+          <div class="phone">
+            <div class="phone-vol">
+              <span></span>
+              <span></span>
+            </div>
+
+            <div class="phone-status-bar"></div>
+
+            <div class="phone-nav">
+              <span class="phone-nav-title">Today</span>
+              <span class="phone-nav-btn">+</span>
+            </div>
+
+            <div class="phone-streak">
+              <div>
+                <div class="phone-streak-label">Current streak</div>
+                <div class="phone-streak-count">🔥 14 days</div>
+              </div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.40);font-weight:500;">3 logged today</div>
+            </div>
+
+            <div class="phone-card">
+              <div class="phone-card-bar lunch"></div>
+              <div class="phone-card-content">
+                <div class="phone-card-header">
+                  <span class="phone-card-category">Lunch</span>
+                  <span class="phone-card-time">Just now</span>
+                </div>
+                <div class="phone-card-text">Ramen noodles with soft-boiled egg and scallions</div>
+              </div>
+            </div>
+
+            <div class="phone-card">
+              <div class="phone-card-bar snack"></div>
+              <div class="phone-card-content">
+                <div class="phone-card-header">
+                  <span class="phone-card-category snack-badge">Snack</span>
+                  <span class="phone-card-time">2h ago</span>
+                </div>
+                <div class="phone-card-text">Greek yogurt with honey and walnuts</div>
+              </div>
+            </div>
+
+            <div class="phone-card">
+              <div class="phone-card-bar dinner"></div>
+              <div class="phone-card-content">
+                <div class="phone-card-header">
+                  <span class="phone-card-category dinner-badge">Breakfast</span>
+                  <span class="phone-card-time">8h ago</span>
+                </div>
+                <div class="phone-card-text">Avocado toast with everything bagel seasoning</div>
+              </div>
+            </div>
+
+            <div style="flex:1;"></div>
+
+            <div class="phone-tab-bar">
+              <div class="phone-tab active">
+                <span class="phone-tab-icon">&#9200;</span>
+                <span class="phone-tab-label">Today</span>
+              </div>
+              <div class="phone-tab">
+                <span class="phone-tab-icon">&#128197;</span>
+                <span class="phone-tab-label">Calendar</span>
+              </div>
+              <div class="phone-tab">
+                <span class="phone-tab-icon">&#128200;</span>
+                <span class="phone-tab-label">Insights</span>
+              </div>
+              <div class="phone-tab">
+                <span class="phone-tab-icon">&#9881;</span>
+                <span class="phone-tab-label">Settings</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SECTION 2 — THE PROBLEM
+    ════════════════════════════════════════════════════════════════════ -->
+    <section id="problem" aria-labelledby="problem-heading">
+      <div class="container">
+
+        <div class="section-header">
+          <p class="section-label">Why FoodLogger exists</p>
+          <h2 id="problem-heading" class="t-title">Other food apps get in the way.</h2>
+        </div>
+
+        <div class="problem-grid">
+
+          <article class="problem-card">
+            <span class="problem-icon" aria-hidden="true">&#10007;</span>
+            <h3 class="problem-title">Calorie apps are exhausting</h3>
+            <p class="problem-body">Counting numbers turns eating into math homework.</p>
+          </article>
+
+          <article class="problem-card">
+            <span class="problem-icon" aria-hidden="true">&#10007;</span>
+            <h3 class="problem-title">Cloud diaries aren't private</h3>
+            <p class="problem-body">Your food habits live on someone else's server.</p>
+          </article>
+
+          <article class="problem-card">
+            <span class="problem-icon" aria-hidden="true">&#10007;</span>
+            <h3 class="problem-title">Most apps do too much</h3>
+            <p class="problem-body">You just want to write down what you ate.</p>
+          </article>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SECTION 3 — HOW IT WORKS
+    ════════════════════════════════════════════════════════════════════ -->
+    <section id="how-it-works" aria-labelledby="how-heading">
+      <div class="container">
+
+        <div class="section-header">
+          <p class="section-label">Dead simple</p>
+          <h2 id="how-heading" class="t-title">Three steps. That's it.</h2>
+        </div>
+
+        <div class="steps-grid">
+
+          <div class="step-card">
+            <span class="step-number" aria-hidden="true">01</span>
+            <p class="step-title">Open the app. Tap&nbsp;+.</p>
+          </div>
+
+          <div class="step-card">
+            <span class="step-number" aria-hidden="true">02</span>
+            <p class="step-title">Type, speak, or snap a photo.</p>
+          </div>
+
+          <div class="step-card">
+            <span class="step-number" aria-hidden="true">03</span>
+            <p class="step-title">Done. It's logged.</p>
+          </div>
+
+        </div>
+
+        <div class="steps-footer">
+          <span class="steps-footer-text">
+            <span class="clock" aria-hidden="true">&#9201;</span>
+            Average log time: under 10 seconds.
+          </span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SECTION 4 — FEATURES
+    ════════════════════════════════════════════════════════════════════ -->
+    <section id="features" aria-labelledby="features-heading">
+      <div class="container">
+
+        <div class="section-header">
+          <p class="section-label">Everything you need</p>
+          <h2 id="features-heading" class="t-title">Built for real life. Nothing more.</h2>
+        </div>
+
+        <div class="features-grid">
+
+          <div class="feature-tile">
+            <div class="feature-icon-wrap" aria-hidden="true">&#127908;</div>
+            <div class="feature-text">
+              <h3 class="feature-title">Text, Voice &amp; Photo</h3>
+              <p class="feature-body">Log a meal however feels natural in the moment.</p>
+            </div>
+          </div>
+
+          <div class="feature-tile">
+            <div class="feature-icon-wrap" aria-hidden="true">&#128269;</div>
+            <div class="feature-text">
+              <h3 class="feature-title">Auto Meal Detection</h3>
+              <p class="feature-body">The app categorises breakfast, lunch, dinner, snacks, and more — automatically.</p>
+            </div>
+          </div>
+
+          <div class="feature-tile">
+            <div class="feature-icon-wrap" aria-hidden="true">&#128197;</div>
+            <div class="feature-text">
+              <h3 class="feature-title">Weekly Recap</h3>
+              <p class="feature-body">Every Sunday, a notification summarises your week: top foods, streak, and consistency.</p>
+            </div>
+          </div>
+
+          <div class="feature-tile">
+            <div class="feature-icon-wrap" aria-hidden="true">&#128200;</div>
+            <div class="feature-text">
+              <h3 class="feature-title">Insights &amp; Charts</h3>
+              <p class="feature-body">See which foods appear most, your daily activity, meal timing patterns, and week-over-week trends.</p>
+            </div>
+          </div>
+
+          <div class="feature-tile">
+            <div class="feature-icon-wrap" aria-hidden="true">&#128293;</div>
+            <div class="feature-text">
+              <h3 class="feature-title">Streak Tracking</h3>
+              <p class="feature-body">A running count of consecutive days you've logged — no account needed to keep the streak alive.</p>
+            </div>
+          </div>
+
+          <div class="feature-tile">
+            <div class="feature-icon-wrap" aria-hidden="true">&#128274;</div>
+            <div class="feature-text">
+              <h3 class="feature-title">100% On-Device</h3>
+              <p class="feature-body">No account. No server. No cloud sync. Your data never leaves your phone.</p>
+            </div>
+          </div>
+
+          <div class="feature-tile">
+            <div class="feature-icon-wrap" aria-hidden="true">&#128279;</div>
+            <div class="feature-text">
+              <h3 class="feature-title">Calendar &amp; Search</h3>
+              <p class="feature-body">Browse any past day on a full calendar, or search across all your entries instantly.</p>
+            </div>
+          </div>
+
+          <div class="feature-tile">
+            <div class="feature-icon-wrap" aria-hidden="true">&#9729;</div>
+            <div class="feature-text">
+              <h3 class="feature-title">Works Offline, Always</h3>
+              <p class="feature-body">Zero network requests. The app works the same with or without a connection.</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SECTION 5 — PRIVACY BLOCK
+    ════════════════════════════════════════════════════════════════════ -->
+    <section id="privacy" aria-labelledby="privacy-heading">
+      <div class="container">
+
+        <h2 id="privacy-heading" class="t-display privacy-headline">
+          Your data never leaves your phone.
+        </h2>
+
+        <div class="privacy-facts" role="list">
+
+          <div class="privacy-fact" role="listitem">
+            <span class="check" aria-hidden="true">&#10003;</span>
+            No account
+          </div>
+
+          <div class="privacy-fact" role="listitem">
+            <span class="check" aria-hidden="true">&#10003;</span>
+            No server
+          </div>
+
+          <div class="privacy-fact" role="listitem">
+            <span class="check" aria-hidden="true">&#10003;</span>
+            No tracking
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         SECTION 6 — WEEKLY RECAP HIGHLIGHT
+    ════════════════════════════════════════════════════════════════════ -->
+    <section id="weekly-recap" aria-labelledby="recap-heading">
+      <div class="container">
+        <div class="recap-wrap">
+          <div class="recap-card">
+
+            <span class="recap-eyebrow" aria-label="Feature spotlight">
+              &#9733; Feature spotlight
+            </span>
+
+            <h2 id="recap-heading" class="recap-header">
+              Every Sunday,<br>your week in review.
+            </h2>
+
+            <ul class="recap-list" aria-label="Weekly recap includes">
+
+              <li>
+                <span class="recap-bullet" aria-hidden="true">&#127869;</span>
+                Top food of the week
+              </li>
+
+              <li>
+                <span class="recap-bullet" aria-hidden="true">&#128293;</span>
+                Current streak count
+              </li>
+
+              <li>
+                <span class="recap-bullet" aria-hidden="true">&#128200;</span>
+                Consistency score
+              </li>
+
+              <li>
+                <span class="recap-bullet" aria-hidden="true">&#8597;</span>
+                Week-over-week comparison
+              </li>
+
+            </ul>
+
+            <div class="recap-footer">
+              <strong>Delivered as a notification.</strong> Generated entirely on your device — no data sent anywhere.
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════════════════════════════════ -->
+  <footer role="contentinfo">
+    <div class="container">
+      <div class="footer-inner">
+
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <div class="footer-logo-icon" aria-hidden="true">&#127869;</div>
+            <span class="footer-logo-name">FoodLogger</span>
+          </div>
+          <p class="footer-tagline">Your food. Your story.</p>
+        </div>
+
+        <nav aria-label="Footer navigation">
+          <div class="footer-links">
+            <a href="#" class="footer-link">Privacy Policy</a>
+            <span class="footer-link-sep" aria-hidden="true">&bull;</span>
+            <a href="#" class="footer-link">Support</a>
+          </div>
+        </nav>
+
+        <div class="footer-meta">
+          <p class="footer-caption">Built for iOS 26.</p>
+          <p class="footer-caption">No in-app purchases.</p>
+        </div>
+
+      </div>
+
+      <div class="footer-divider" aria-hidden="true"></div>
+      <p class="footer-bottom">&copy; 2026 FoodLogger. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Smooth-scroll anchor links — no inline event handlers
+    document.addEventListener("DOMContentLoaded", function () {
+      // Intercept all anchor clicks for same-page smooth scroll
+      document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+        anchor.addEventListener("click", function (e) {
+          var targetId = anchor.getAttribute("href");
+          if (targetId === "#") return; // Let CTA button work as-is
+          var target = document.querySelector(targetId);
+          if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      });
+
+      // Subtle entrance animation for feature tiles using IntersectionObserver
+      if ("IntersectionObserver" in window) {
+        var animItems = document.querySelectorAll(
+          ".feature-tile, .problem-card, .step-card, .recap-card, .privacy-fact"
+        );
+
+        // Set initial state
+        animItems.forEach(function (el) {
+          el.style.opacity = "0";
+          el.style.transform = "translateY(20px)";
+          el.style.transition = "opacity 0.45s ease, transform 0.45s ease";
+        });
+
+        var observer = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                entry.target.style.opacity = "1";
+                entry.target.style.transform = "translateY(0)";
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.12 }
+        );
+
+        animItems.forEach(function (el) {
+          observer.observe(el);
+        });
+      }
+    });
+  </script>
+
+</body>
+</html>

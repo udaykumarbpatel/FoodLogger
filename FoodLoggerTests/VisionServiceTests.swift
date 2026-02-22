@@ -1,5 +1,6 @@
 import XCTest
 import UIKit
+import ImageIO
 @testable import FoodLogger
 
 // VisionService tests use XCTest (not Swift Testing) because:
@@ -12,16 +13,11 @@ final class VisionServiceTests: XCTestCase {
 
     // MARK: - Invalid image
 
-    func testNilCGImageThrowsInvalidImageError() async {
-        let emptyImage = UIImage()
-        do {
-            _ = try await service.classifyImage(emptyImage)
-            XCTFail("Expected VisionError.invalidImage to be thrown")
-        } catch VisionService.VisionError.invalidImage {
-            // Expected — pass
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
+    // VisionService no longer accepts UIImage directly; cgImage extraction is the caller's
+    // responsibility. This test verifies the contract: UIImage() has no cgImage, so a
+    // call site guard would bail before reaching the service.
+    func testNilCGImageIsNil() {
+        XCTAssertNil(UIImage().cgImage, "UIImage() should have a nil cgImage")
     }
 
     // MARK: - Valid images
@@ -30,8 +26,10 @@ final class VisionServiceTests: XCTestCase {
 
     func testSolidColourImageReturnsNonEmptyLabels() async {
         let image = makeSolidImage(color: .red, size: CGSize(width: 224, height: 224))
+        guard let cgImage = image.cgImage else { XCTFail("Expected cgImage"); return }
+        let orientation = CGImagePropertyOrientation(image.imageOrientation)
         do {
-            let labels = try await service.classifyImage(image)
+            let labels = try await service.classifyImage(cgImage: cgImage, orientation: orientation)
             XCTAssertFalse(labels.isEmpty, "Expected at least one label from Vision")
         } catch {
             // VNClassifyImageRequest may be unavailable on this simulator — skip gracefully
@@ -41,8 +39,10 @@ final class VisionServiceTests: XCTestCase {
 
     func testResultHasAtMostThreeLabels() async {
         let image = makeSolidImage(color: .blue, size: CGSize(width: 224, height: 224))
+        guard let cgImage = image.cgImage else { XCTFail("Expected cgImage"); return }
+        let orientation = CGImagePropertyOrientation(image.imageOrientation)
         do {
-            let labels = try await service.classifyImage(image)
+            let labels = try await service.classifyImage(cgImage: cgImage, orientation: orientation)
             XCTAssertLessThanOrEqual(labels.count, 3)
         } catch {
             print("VisionService: classifyImage threw on simulator: \(error) — skipping assertion")
@@ -51,8 +51,10 @@ final class VisionServiceTests: XCTestCase {
 
     func testLabelsAreNonEmptyStrings() async {
         let image = makeSolidImage(color: .green, size: CGSize(width: 224, height: 224))
+        guard let cgImage = image.cgImage else { XCTFail("Expected cgImage"); return }
+        let orientation = CGImagePropertyOrientation(image.imageOrientation)
         do {
-            let labels = try await service.classifyImage(image)
+            let labels = try await service.classifyImage(cgImage: cgImage, orientation: orientation)
             for label in labels {
                 XCTAssertFalse(label.isEmpty, "Label should not be an empty string")
             }
@@ -71,3 +73,4 @@ final class VisionServiceTests: XCTestCase {
         }
     }
 }
+

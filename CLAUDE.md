@@ -123,6 +123,7 @@ FoodLogger/                     ← git root & Xcode project root
     WeeklySummaryServiceTests.swift     (Swift Testing — 25 tests for WeeklySummaryService)
     NotificationRecapTests.swift        (Swift Testing — 15 tests for weekly recap notification)
   FoodLogger.xcodeproj/
+  Marketing/                    ← App Store listing (appstore.md) and landing page (index.html); no build target
 ```
 
 ## Running & testing
@@ -192,13 +193,17 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 - On edit: sets `entry.category = selectedCategory` (nil = removes tag)
 
 ## EntryCardView architecture
+Compact tile design — 4–5 cards visible on screen simultaneously without scrolling.
+
 - Parameters: `entry: FoodEntry`, `isToday: Bool`, `isHighlighted: Bool = false`
-- Layout: `HStack` with a thin colored left bar (4 pt wide, `entry.category?.color ?? .clear`, rounded corners) + content VStack
-- Card style: `Color(UIColor.secondarySystemGroupedBackground)` background, `cornerRadius(16, .continuous)`, `shadow(opacity: 0.06, radius: 8, y: 4)`
-- Timestamp: `Text(.relative)` when `isToday`, `Text(.time)` when not
-- "· edited" italic caption shown when `entry.updatedAt != nil`
-- Category badge is a tappable `Menu` — pick any MealCategory or "Remove Tag" (sets to nil)
-- `isHighlighted`: renders an accent-color stroke overlay; used when navigating from Search
+- Layout: `VStack(spacing: 0)` with two zones clipped by `RoundedRectangle(cornerRadius: 16, .continuous)`:
+  - **Header band** (28pt tall): full-width solid `entry.category?.color` background (nil → `#95A5A6` gray); SF Symbol icon + uppercase category name in white `.bold .caption`; entire band is a tappable `Menu` to change/remove the category
+  - **Card body**: `ZStack` background of `secondarySystemGroupedBackground` + `categoryColor.opacity(0.08)` wash; `processedDescription` in `.body .medium`, `.lineLimit(2)` default (expands on tap), `.minimumScaleFactor(0.85)`; bottom row: timestamp left, "· edited" italic if `updatedAt != nil`, decorative `›` chevron right
+- Shadow: `categoryColor.opacity(0.15)`, radius 6, y 3 — colored to match category
+- `isHighlighted`: `brandAccent` stroke overlay (2pt), used when navigating from Search
+- Tap on body toggles `@State isExpanded` — expands description + shows thumbnail and original input if applicable
+- Expanded content: photo thumbnail (160pt height, cornerRadius 8) + original rawInput section when it differs from processedDescription
+- All interactive elements have `accessibilityLabel`; decorative elements (icon, chevron) are `accessibilityHidden(true)`
 
 ## StyleGuide architecture
 `Views/StyleGuide.swift` — shared design tokens, no actor isolation needed:

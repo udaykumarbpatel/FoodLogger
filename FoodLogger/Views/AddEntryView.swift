@@ -511,7 +511,13 @@ struct AddEntryView: View {
         isProcessingImage = true
         imageEditableDescription = ""
         storedVisionLabels = []
-        let labels = (try? await visionService.classifyImage(image)) ?? []
+        // Extract UIImage properties here on @MainActor before calling the nonisolated service.
+        guard let cgImage = image.cgImage else {
+            isProcessingImage = false
+            return
+        }
+        let orientation = CGImagePropertyOrientation(image.imageOrientation)
+        let labels = (try? await visionService.classifyImage(cgImage: cgImage, orientation: orientation)) ?? []
         storedVisionLabels = labels
         imageEditableDescription = descriptionBuilder.buildDescription(fromVisionLabels: labels)
         isProcessingImage = false
@@ -530,7 +536,7 @@ struct AddEntryView: View {
             } catch {
                 let speechDenied = speechService.authorizationStatus == .denied
                     || speechService.authorizationStatus == .restricted
-                let micDenied = AVAudioSession.sharedInstance().recordPermission == .denied
+                let micDenied = AVAudioApplication.shared.recordPermission == .denied
                 if micDenied {
                     showPermissionDenied(title: "Microphone Access Needed",
                         message: "FoodLogger needs microphone access to record meal descriptions. Enable it in Settings.")
@@ -707,6 +713,24 @@ struct CameraPickerView: UIViewControllerRepresentable {
 
         nonisolated func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             Task { @MainActor in self.parent.dismiss() }
+        }
+    }
+}
+
+// MARK: - UIImage orientation → CGImagePropertyOrientation
+
+extension CGImagePropertyOrientation {
+    init(_ uiOrientation: UIImage.Orientation) {
+        switch uiOrientation {
+        case .up:            self = .up
+        case .upMirrored:    self = .upMirrored
+        case .down:          self = .down
+        case .downMirrored:  self = .downMirrored
+        case .left:          self = .left
+        case .leftMirrored:  self = .leftMirrored
+        case .right:         self = .right
+        case .rightMirrored: self = .rightMirrored
+        @unknown default:    self = .up
         }
     }
 }
