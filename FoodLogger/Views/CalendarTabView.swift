@@ -11,8 +11,14 @@ struct CalendarTabView: View {
 
     private let calendar = Calendar.current
 
-    private var daysWithEntries: Set<Date> {
-        Set(allEntries.map { calendar.startOfDay(for: $0.date) })
+    /// Entry count per calendar day — used for heatmap intensity.
+    private var entriesPerDay: [Date: Int] {
+        var counts: [Date: Int] = [:]
+        for entry in allEntries {
+            let day = calendar.startOfDay(for: entry.date)
+            counts[day, default: 0] += 1
+        }
+        return counts
     }
 
     private var monthStart: Date {
@@ -59,7 +65,7 @@ struct CalendarTabView: View {
                                     date: date,
                                     isSelected: selectedDate.map { calendar.isDate($0, inSameDayAs: date) } ?? false,
                                     isToday: calendar.isDateInToday(date),
-                                    hasEntries: daysWithEntries.contains(calendar.startOfDay(for: date))
+                                    entryCount: entriesPerDay[calendar.startOfDay(for: date)] ?? 0
                                 )
                                 .onTapGesture {
                                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -213,25 +219,18 @@ private struct CalendarTabDayCell: View {
     let date: Date
     let isSelected: Bool
     let isToday: Bool
-    let hasEntries: Bool
+    let entryCount: Int
 
     private let calendar = Calendar.current
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text("\(calendar.component(.day, from: date))")
-                .font(.system(.subheadline, design: .rounded).weight(isToday ? .bold : .regular))
-                .foregroundStyle(dayTextColor)
-                .frame(width: 38, height: 38)
-                .background(dayBackground)
-                .clipShape(Circle())
-
-            Circle()
-                .fill(Color.accentColor)
-                .frame(width: 5, height: 5)
-                .opacity(hasEntries ? 1 : 0)
-        }
-        .frame(height: 52)
+        Text("\(calendar.component(.day, from: date))")
+            .font(.system(.subheadline, design: .rounded).weight(isToday ? .bold : .regular))
+            .foregroundStyle(dayTextColor)
+            .frame(width: 38, height: 38)
+            .background(dayBackground)
+            .clipShape(Circle())
+            .frame(height: 52)
     }
 
     @ViewBuilder
@@ -239,15 +238,26 @@ private struct CalendarTabDayCell: View {
         if isToday {
             Circle().fill(Color.accentColor)
         } else if isSelected {
-            Circle().fill(Color.accentColor.opacity(0.2))
+            Circle().fill(Color.accentColor.opacity(0.25))
         } else {
-            Color.clear
+            // Heatmap: deeper color for more entries.
+            Circle().fill(heatmapFill)
+        }
+    }
+
+    private var heatmapFill: Color {
+        switch entryCount {
+        case 0:    return Color.clear
+        case 1:    return Color.accentColor.opacity(0.25)
+        case 2:    return Color.accentColor.opacity(0.55)
+        default:   return Color.accentColor.opacity(0.85)
         }
     }
 
     private var dayTextColor: Color {
         if isToday { return .white }
         if isSelected { return .accentColor }
+        if entryCount >= 3 { return .white }
         return .primary
     }
 }

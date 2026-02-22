@@ -502,10 +502,10 @@ private struct DayCircle: View {
 }
 
 // MARK: - Confetti (Canvas-based, no third party)
+// NOTE: Not private — shared with AppShellView for milestone celebrations.
 
-private struct ConfettiView: View {
+struct ConfettiView: View {
     @State private var particles: [ConfettiParticle] = []
-    @State private var animating = false
 
     var body: some View {
         TimelineView(.animation) { timeline in
@@ -543,7 +543,7 @@ private struct ConfettiView: View {
     }
 }
 
-private struct ConfettiParticle {
+struct ConfettiParticle {
     let x: Double
     let vx: Double
     let vy: Double

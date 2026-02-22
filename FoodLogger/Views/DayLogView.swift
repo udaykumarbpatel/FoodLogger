@@ -176,6 +176,18 @@ private struct DayLogBody: View {
         .onReceive(NotificationCenter.default.publisher(for: .openAddEntry)) { _ in
             if isToday { showAddSheet = true }
         }
+        .onChange(of: entries.count) { oldCount, newCount in
+            // Celebrate new entries on today's page only (not edits or deletes).
+            guard isToday, newCount > oldCount else { return }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            let message: String
+            switch newCount {
+            case 1:  message = "First entry today! 🎉"
+            case 2:  message = "Meal #2 today!"
+            default: message = "Meal #\(newCount) today!"
+            }
+            showToast(message)
+        }
     }
 
     // MARK: - Entry List

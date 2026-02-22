@@ -29,6 +29,15 @@ struct TodayTabView: View {
         Date().formatted(.dateTime.weekday(.wide).month(.wide).day())
     }
 
+    /// Flame color shifts from amber → orange → red as the streak grows.
+    private var flameColor: Color {
+        switch streakInfo.count {
+        case 0..<7:   return Color.brandWarm   // amber
+        case 7..<14:  return .orange
+        default:      return .red
+        }
+    }
+
     var body: some View {
         NavigationStack {
             DayLogView()
@@ -53,7 +62,7 @@ struct TodayTabView: View {
                 if streakInfo.count > 0 {
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(flameColor)
                         Text("\(streakInfo.count)")
                             .fontWeight(.bold)
                     }

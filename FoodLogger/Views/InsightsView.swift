@@ -18,8 +18,10 @@ struct InsightsView: View {
     @State private var selectedPeriod: AnalyticsPeriod = .month
     @State private var heatmapMonth: Date = Date()
     @State private var searchText: String = ""
+    @State private var weeklySummary: WeeklySummary?
 
     private let service = InsightsService()
+    private let summaryService = WeeklySummaryService()
 
     // MARK: - Derived data
 
@@ -107,6 +109,20 @@ struct InsightsView: View {
         StreakService().compute(from: entries)
     }
 
+    /// Most entries logged on any single day (all-time).
+    private var mostLoggedDayCount: Int {
+        let calendar = Calendar.current
+        var dayCounts: [Date: Int] = [:]
+        for entry in entries {
+            let day = calendar.startOfDay(for: entry.date)
+            dayCounts[day, default: 0] += 1
+        }
+        return dayCounts.values.max() ?? 0
+    }
+
+    /// Count of distinct non-stopword food tokens seen in all entries.
+    private var totalUniqueFoods: Int { allTimeTopFoods.count }
+
     // MARK: - Body
 
     var body: some View {
@@ -117,11 +133,14 @@ struct InsightsView: View {
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 16) {
-                            periodPicker
-                                .padding(.horizontal, 16)
+                            storyHeadlineCard
                                 .padding(.top, 8)
 
+                            periodPicker
+                                .padding(.horizontal, 16)
+
                             statsCard
+                            recordsCard
                             topFoodsCard
                             dailyActivityCard
                             categoryCard
@@ -136,6 +155,41 @@ struct InsightsView: View {
             }
             .navigationTitle("Insights")
             .navigationBarTitleDisplayMode(.large)
+            .onAppear {
+                weeklySummary = summaryService.generateSummary(from: entries)
+            }
+        }
+    }
+
+    // MARK: - Story Headline
+
+    @ViewBuilder
+    private var storyHeadlineCard: some View {
+        if let summary = weeklySummary, !entries.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Label("This Week", systemImage: "sparkles")
+                    .font(.appCaption)
+                    .foregroundStyle(Color.accentColor)
+
+                Text(summary.headline)
+                    .font(.appHeadline)
+                    .foregroundStyle(.primary)
+
+                Text(summary.subheadline)
+                    .font(.appBody)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(
+                Color.accentColor.opacity(0.08),
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.accentColor.opacity(0.25), lineWidth: 1)
+            )
+            .padding(.horizontal, 16)
         }
     }
 
@@ -204,6 +258,41 @@ struct InsightsView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: 160)
+    }
+
+    // MARK: - Records Card
+
+    private var recordsCard: some View {
+        chartCard(title: "Your Records") {
+            HStack(spacing: 0) {
+                statCell(
+                    icon: "flame.fill",
+                    iconColor: .orange,
+                    value: "\(longestStreak)",
+                    label: "longest streak"
+                )
+
+                Divider().frame(height: 60)
+
+                statCell(
+                    icon: "calendar.badge.plus",
+                    iconColor: .green,
+                    value: "\(mostLoggedDayCount)",
+                    label: "best day"
+                )
+
+                Divider().frame(height: 60)
+
+                statCell(
+                    icon: "sparkles",
+                    iconColor: .purple,
+                    value: "\(totalUniqueFoods)",
+                    label: "unique foods"
+                )
+            }
+            .padding(.vertical, 16)
+            .padding(.top, 4)
+        }
     }
 
     // MARK: - Chart A: Top Foods

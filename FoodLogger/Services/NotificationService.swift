@@ -75,6 +75,31 @@ final class NotificationService {
         try? await center.add(request)
     }
 
+    /// Schedules an 8 pm "streak at risk" nudge for today if the user has a streak but hasn't
+    /// logged yet. Cancels any existing streak-risk notification when already logged.
+    func scheduleStreakRisk(currentStreak: Int, hasLoggedToday: Bool) async {
+        let identifier = "streak-risk"
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        guard currentStreak > 0, !hasLoggedToday else { return }
+
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: Date())
+        components.hour = 20   // 8:00 PM
+        components.minute = 0
+
+        guard let triggerDate = calendar.date(from: components), triggerDate > Date() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Streak at Risk 🔥"
+        content.body = "You have a \(currentStreak)-day streak — log today to keep it alive!"
+        content.sound = .default
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        try? await center.add(request)
+    }
+
     func cancelAll() {
         center.removeAllPendingNotificationRequests()
     }

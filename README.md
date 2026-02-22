@@ -20,7 +20,12 @@ A native iOS food diary app. Log what you ate — by typing, speaking, or photog
 - Full-text search across all entries
 - Weekly and monthly summary view
 - Consecutive-day streak counter
-- Analytics dashboard (Insights tab): top foods, daily activity, category breakdown, meal timing, week-over-week comparison, monthly heatmap, food search, stats card
+- Analytics dashboard (Insights tab): weekly story headline, top foods, daily activity, category breakdown, meal timing, week-over-week comparison, monthly heatmap, food search, stats card, personal records card (longest streak / best day / unique foods)
+- Calendar tab shows entry-density heatmap — deeper orange for more entries on a day
+- Entry save celebration: spring haptic + contextual toast ("First entry today!" / "Meal #N today!") on the Today tab
+- Streak flame animates with a pulse and color-shifts amber → orange → red as the streak grows
+- Milestone confetti at 10 / 25 / 50 / 100 / 250 total entries (one-time, stored in UserDefaults)
+- "Streak at risk" notification at 8 pm when you have a streak but haven't logged yet
 - Weekly Recap: 6-page animated recap shown every Monday on launch and via Sunday 7 pm push notification
 - Daily reminder notifications (skips days you've already logged)
 - Export all entries as a JSON file (share or save via the standard iOS share sheet)
@@ -61,8 +66,8 @@ FoodLogger/
 │   ├── CalendarView.swift           # Month-grid sheet for date navigation
 │   ├── SearchView.swift             # Full-text search across all entries
 │   ├── SummaryView.swift            # Weekly / monthly grouped entry list
-│   ├── InsightsView.swift           # Analytics dashboard — 8 Swift Charts cards + period picker
-│   ├── WeeklyRecapView.swift        # 6-page animated weekly recap (Hero, Stats, Top Food, Categories, Consistency, Share)
+│   ├── InsightsView.swift           # Analytics dashboard — story headline, stats, records, 8 Swift Charts cards + period picker
+│   ├── WeeklyRecapView.swift        # 6-page animated weekly recap; ConfettiView/ConfettiParticle now internal for reuse
 │   ├── StyleGuide.swift             # Font extensions, CardModifier, EmptyStateView
 │   └── SettingsView.swift           # Notifications, JSON export, Developer tools (DEBUG)
 └── Services/
@@ -71,7 +76,7 @@ FoodLogger/
     ├── FoodDescriptionBuilder.swift # NLTagger noun extraction + Vision label cleaning
     ├── CategoryDetectionService.swift # Content-first meal category auto-detection
     ├── StreakService.swift           # Consecutive-day streak computation
-    ├── NotificationService.swift    # Daily reminders + Sunday weekly recap notification
+    ├── NotificationService.swift    # Daily reminders + Sunday weekly recap + 8pm streak-at-risk notification
     ├── ExportService.swift          # JSON serialisation + filename generation
     ├── InsightsService.swift        # Typed analytics over [FoodEntry] — 8 methods, 5 periods
     ├── WeeklySummaryService.swift   # WeeklySummary computation + headline/subheadline generation
@@ -123,3 +128,10 @@ xcodebuild test \
 ```
 
 179 tests across 9 suites covering the data model, description builder, Vision service, meal category detection, JSON export, analytics, sample data seeding, weekly summary, and notification scheduling.
+
+## UserDefaults keys
+
+| Key | Type | Purpose |
+|-----|------|---------|
+| `"onboardingComplete"` | `Bool` | Set after first-launch onboarding is dismissed |
+| `"triggeredMilestones"` | `[Int]` | Milestone entry counts (10/25/50/100/250) already celebrated; prevents repeat confetti |

@@ -20,6 +20,7 @@ struct AddEntryView: View {
     @State private var selectedMode: InputMode
     @State private var textInput: String
     @State private var selectedCategory: MealCategory?
+    @State private var entryTime: Date
 
     // Photo state
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -80,10 +81,15 @@ struct AddEntryView: View {
             _selectedMode = State(initialValue: .text)
             _textInput = State(initialValue: entry.processedDescription)
             _selectedCategory = State(initialValue: entry.category)
+            _entryTime = State(initialValue: entry.createdAt)
         } else {
             _selectedMode = State(initialValue: .text)
             _textInput = State(initialValue: "")
             _selectedCategory = State(initialValue: nil)
+            // Today → current time so the sort order is natural.
+            // Past day → midnight (startOfDay) so the user sets an intentional time.
+            let isToday = Calendar.current.isDateInToday(forDate)
+            _entryTime = State(initialValue: isToday ? Date() : forDate)
         }
     }
 
@@ -115,6 +121,7 @@ struct AddEntryView: View {
                             }
                         }
                         categoryPickerSection
+                        timePickerSection
                     }
                     .padding()
                 }
@@ -209,6 +216,29 @@ struct AddEntryView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    // MARK: - Time Picker
+
+    private var timePickerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Time")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            HStack {
+                Image(systemName: "clock")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+                DatePicker("", selection: $entryTime, displayedComponents: .hourAndMinute)
+                    .labelsHidden()
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(Color(.secondarySystemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
@@ -434,6 +464,17 @@ struct AddEntryView: View {
 
     // MARK: - Save
 
+    /// Combines the calendar day from `day` (startOfDay) with the hour/minute from `time`.
+    private func resolvedCreatedAt(day: Date, time: Date) -> Date {
+        let cal = Calendar.current
+        var comps = cal.dateComponents([.year, .month, .day], from: day)
+        let t = cal.dateComponents([.hour, .minute], from: time)
+        comps.hour = t.hour
+        comps.minute = t.minute
+        comps.second = 0
+        return cal.date(from: comps) ?? time
+    }
+
     private func saveEntry() async {
         isSaving = true
         defer { isSaving = false }
@@ -442,6 +483,7 @@ struct AddEntryView: View {
         if let entry = editingEntry {
             entry.processedDescription = textInput.trimmingCharacters(in: .whitespacesAndNewlines)
             entry.category = selectedCategory
+            entry.createdAt = resolvedCreatedAt(day: entry.date, time: entryTime)
             entry.updatedAt = Date()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             dismiss()
@@ -493,6 +535,7 @@ struct AddEntryView: View {
             inputType: inputType,
             processedDescription: processedDescription,
             mediaURL: mediaURL,
+            createdAt: resolvedCreatedAt(day: forDate, time: entryTime),
             category: category
         )
         modelContext.insert(entry)
