@@ -8,6 +8,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this project is
 Native iOS food diary app. Users log meals by text, voice, or photo. Plain-text descriptions only — no calories or macros. 100% on-device; zero network requests.
 
+## Design language
+Visual identity: bold, energetic, deep colors. Journal meets food.
+
+**Color palette** (defined in `StyleGuide.swift` as `Color` extensions):
+| Token | Hex | Usage |
+|---|---|---|
+| `brandPrimary` | `#1B1F3B` | Deep navy — backgrounds, headers, tab bar |
+| `brandAccent` | `#FF6B35` | Vivid orange — CTAs, streaks, highlights, selected tab |
+| `brandWarm` | `#FFB347` | Amber — secondary accents, taglines, gradients |
+| `brandSurface` | `#F7F3EE` | Warm off-white — card backgrounds (light mode) |
+| `brandSuccess` | `#2ECC71` | Green — streaks, positive trends |
+
+**Typography** — all `.rounded` design, weight escalated:
+- `.appDisplay` — size 34, `.black` — hero numbers, page titles
+- `.appTitle` — `.title2`, `.black` — section headers
+- `.appHeadline` — `.headline`, `.bold` — card titles, labels
+- `.appSubheadline` — `.subheadline`, `.medium`
+- `.appBody` — `.body`, `.medium`
+- `.appCaption` — `.caption`, `.regular`
+
+**Graphic motif:** open journal book with a fork as the spine — two rounded-rect pages rotated outward + `fork.knife` SF Symbol on spine in `brandAccent`. Used in `LaunchScreenView`, `OnboardingView` page 1, and `AppIconView`.
+
+**Tab bar:** deep navy background, vivid orange selected, 40%-white unselected. Configured via `UITabBar.appearance()` in `AppShellView.init()`.
+
+**AccentColor asset:** set to `brandAccent` (#FF6B35) — propagates to all tint colors, toggles, pickers.
+
+**Launch sequence (every launch):** `LaunchScreenView` (1.4s animated) → `AppShellView`. On first launch only: `OnboardingView` (4-page fullScreenCover) appears after the launch screen.
+
 ## Tech stack
 - **Language:** Swift 5, SwiftUI, SwiftData
 - **On-device AI:** `Speech` (SFSpeechRecognizer), `Vision` (VNClassifyImageRequest), `NaturalLanguage` (NLTagger)
@@ -57,7 +85,11 @@ FoodLogger/                     ← git root & Xcode project root
     App/FoodLoggerApp.swift       ← @main; AppDelegate (UIApplicationDelegate + UNUserNotificationCenterDelegate); quick actions; Notification.Name extensions (.quickAction, .openAddEntry, .openWeeklyRecap); AppRootView with Monday recap trigger
     Models/FoodEntry.swift
     Models/MealCategory.swift     ← enum MealCategory (breakfast/lunch/snack/dinner/dessert/beverage); has .color and .icon
-    Views/AppShellView.swift      ← ROOT: outer TabView with 4 tabs (Today/Calendar/Insights/Settings); owns @Query allEntries; listens for .openWeeklyRecap → presents WeeklyRecapView as fullScreenCover
+    App/FoodLoggerApp.swift       ← @main; AppDelegate; quick actions; Notification.Name extensions; AppRootView with launch sequence: LaunchScreenView (1.4s) → AppShellView + OnboardingView fullScreenCover (first launch only) + Monday recap trigger
+    Views/OnboardingView.swift    ← 4-page fullScreenCover onboarding (Welcome/LogAnything/Patterns/Private); custom capsule page indicator; skip button; UserDefaults key "onboardingComplete"; shown once on first launch
+    Views/LaunchScreenView.swift  ← animated launch screen: book+fork motif spring-scales in, app name slides up, tagline fades; calls onComplete after 1.4s; shown every launch
+    Views/AppIconView.swift       ← SwiftUI reference view of the app icon design (1024×1024 Canvas composition; navy bg + book pages + fork spine + amber dots); use for preview/export
+    Views/AppShellView.swift      ← ROOT: outer TabView with 4 tabs (Today/Calendar/Insights/Settings); owns @Query allEntries; configures UITabBar.appearance (navy bg, orange selected, 40%-white unselected); listens for .openWeeklyRecap → presents WeeklyRecapView as fullScreenCover
     Views/WeeklyRecapView.swift   ← 6-page fullScreenCover recap (Hero/Stats/TopFood/Categories/Consistency/Share); Canvas confetti on perfect week; ImageRenderer share card
     Views/TodayTabView.swift      ← Tab 1: NavigationStack wrapping DayLogView + gradient banner (greeting, streak, today count)
     Views/DayLogView.swift        ← swipe-between-days shell (DayLogView) + entry list body (DayLogBody); toolbar: search + today only
@@ -69,7 +101,7 @@ FoodLogger/                     ← git root & Xcode project root
     Views/SummaryView.swift       ← weekly/monthly grouped entry list sheet
     Views/SettingsView.swift      ← Tab 4: daily reminder toggle + time picker + JSON export; #if DEBUG "Clear Sample Data" + "Clear & Re-seed" section
     Views/InsightsView.swift      ← Tab 3: analytics dashboard: 8 Swift Charts cards + period picker
-    Views/StyleGuide.swift        ← shared: Font extensions (.appBody/.appTitle/.appCaption/.appHeadline/.appSubheadline), CardModifier + .cardStyle(), EmptyStateView
+    Views/StyleGuide.swift        ← shared: Color(hex:) initializer + brand palette (brandPrimary/brandAccent/brandWarm/brandSurface/brandSuccess); Font extensions (.appBody/.appTitle/.appCaption/.appHeadline/.appSubheadline/.appDisplay); CardModifier (dark-mode aware, uses brandSurface in light mode) + .cardStyle(); EmptyStateView (circle bg + brandAccent icon + brandPrimary title)
     Services/SpeechService.swift
     Services/VisionService.swift
     Services/FoodDescriptionBuilder.swift

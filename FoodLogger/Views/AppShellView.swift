@@ -1,5 +1,8 @@
 import SwiftUI
 import SwiftData
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - App Shell
 
@@ -8,6 +11,31 @@ struct AppShellView: View {
     private let streakService = StreakService()
     @State private var showWeeklyRecap = false
     @State private var weeklyRecapSummary: WeeklySummary?
+
+    init() {
+        #if canImport(UIKit)
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Color.brandPrimary)
+
+        let orange = UIColor(Color.brandAccent)
+        appearance.stackedLayoutAppearance.selected.iconColor = orange
+        appearance.stackedLayoutAppearance.selected.titleTextAttributes = [
+            .foregroundColor: orange,
+            .font: UIFont.systemFont(ofSize: 10, weight: .semibold)
+        ]
+
+        let dimWhite = UIColor.white.withAlphaComponent(0.4)
+        appearance.stackedLayoutAppearance.normal.iconColor = dimWhite
+        appearance.stackedLayoutAppearance.normal.titleTextAttributes = [
+            .foregroundColor: dimWhite,
+            .font: UIFont.systemFont(ofSize: 10, weight: .regular)
+        ]
+
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+        #endif
+    }
 
     private var streakInfo: StreakService.StreakInfo {
         streakService.compute(from: allEntries)
@@ -32,7 +60,7 @@ struct AppShellView: View {
 
             SettingsView(hasLoggedToday: streakInfo.hasEntryToday)
                 .tabItem {
-                    Label("Settings", systemImage: "gearshape")
+                    Label("Settings", systemImage: "gearshape.fill")
                 }
         }
         .fullScreenCover(isPresented: $showWeeklyRecap) {
@@ -46,4 +74,3 @@ struct AppShellView: View {
         }
     }
 }
-

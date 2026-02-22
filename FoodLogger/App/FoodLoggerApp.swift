@@ -124,20 +124,37 @@ private struct AppRootView: View {
     @State private var showRecapOnLaunch = false
     @State private var launchRecapSummary: WeeklySummary?
 
+    // Launch sequence state
+    @State private var launchComplete = false
+    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: "onboardingComplete")
+
     var body: some View {
-        AppShellView()
-            .task {
-                guard !didSeed else { return }
-                didSeed = true
-                SampleDataService().seedIfNeeded(context: modelContext)
-                await checkAndShowMondayRecap()
-                await rescheduleWeeklyRecapNotification()
-            }
-            .fullScreenCover(isPresented: $showRecapOnLaunch) {
-                if let summary = launchRecapSummary {
-                    WeeklyRecapView(summary: summary)
+        if !launchComplete {
+            LaunchScreenView {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    launchComplete = true
                 }
             }
+        } else {
+            AppShellView()
+                .task {
+                    guard !didSeed else { return }
+                    didSeed = true
+                    SampleDataService().seedIfNeeded(context: modelContext)
+                    await checkAndShowMondayRecap()
+                    await rescheduleWeeklyRecapNotification()
+                }
+                .fullScreenCover(isPresented: $showRecapOnLaunch) {
+                    if let summary = launchRecapSummary {
+                        WeeklyRecapView(summary: summary)
+                    }
+                }
+                .fullScreenCover(isPresented: $showOnboarding) {
+                    OnboardingView {
+                        showOnboarding = false
+                    }
+                }
+        }
     }
 
     private func checkAndShowMondayRecap() async {
