@@ -93,13 +93,11 @@ private struct AppRootView: View {
     @State private var didSeed = false
 
     var body: some View {
-        NavigationStack {
-            DayLogView()
-        }
-        .task {
-            guard !didSeed else { return }
-            didSeed = true
-            SampleDataService().seedIfNeeded(context: modelContext)
-        }
+        AppShellView()
+            .task {
+                guard !didSeed else { return }
+                didSeed = true
+                SampleDataService().seedIfNeeded(context: modelContext)
+            }
     }
 }

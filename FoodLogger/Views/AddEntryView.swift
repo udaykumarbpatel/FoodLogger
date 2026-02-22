@@ -87,13 +87,10 @@ struct AddEntryView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 if !isEditMode {
-                    Picker("Input Mode", selection: $selectedMode) {
-                        ForEach(InputMode.allCases, id: \.self) { mode in
-                            Label(mode.rawValue, systemImage: mode.systemImage).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding()
+                    CapsuleModeSelector(selectedMode: $selectedMode)
+                        .padding(.horizontal)
+                        .padding(.top, 12)
+                        .padding(.bottom, 4)
 
                     Divider()
                 }
@@ -159,6 +156,8 @@ struct AddEntryView: View {
             } message: {
                 Text(permissionAlertMessage)
             }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -582,6 +581,45 @@ struct AddEntryView: View {
 
     enum ImageSaveError: Error {
         case compressionFailed
+    }
+}
+
+// MARK: - Capsule Mode Selector
+
+private struct CapsuleModeSelector: View {
+    @Binding var selectedMode: AddEntryView.InputMode
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(AddEntryView.InputMode.allCases, id: \.self) { mode in
+                Button {
+                    withAnimation(.spring(duration: 0.3)) {
+                        selectedMode = mode
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: mode.systemImage)
+                            .font(.caption.weight(.semibold))
+                        Text(mode.rawValue)
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .foregroundStyle(selectedMode == mode ? .white : .secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        Group {
+                            if selectedMode == mode {
+                                Capsule()
+                                    .fill(Color.accentColor)
+                            }
+                        }
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(Color(UIColor.secondarySystemBackground), in: Capsule())
     }
 }
 

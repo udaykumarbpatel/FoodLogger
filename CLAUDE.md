@@ -56,15 +56,19 @@ FoodLogger/                     ← git root & Xcode project root
   FoodLogger/                   ← app source (file-system sync root)
     App/FoodLoggerApp.swift       ← @main; AppDelegate for quick actions; Notification.Name extensions
     Models/FoodEntry.swift
-    Models/MealCategory.swift     ← enum MealCategory (breakfast/lunch/snack/dinner/dessert/beverage)
-    Views/DayLogView.swift        ← HOME SCREEN: shell (DayLogView) + body (DayLogBody)
-    Views/AddEntryView.swift      ← text/voice/image; edit mode via editingEntry: FoodEntry? param
-    Views/EntryCardView.swift     ← card with relative/absolute timestamp, category badge, "edited" label
-    Views/CalendarView.swift      ← month-grid sheet; tapping a day navigates DayLogView to that date
+    Models/MealCategory.swift     ← enum MealCategory (breakfast/lunch/snack/dinner/dessert/beverage); has .color and .icon
+    Views/AppShellView.swift      ← ROOT: outer TabView with 4 tabs (Today/Calendar/Insights/Settings); owns @Query allEntries for Insights+Settings
+    Views/TodayTabView.swift      ← Tab 1: NavigationStack wrapping DayLogView + gradient banner (greeting, streak, today count)
+    Views/DayLogView.swift        ← swipe-between-days shell (DayLogView) + entry list body (DayLogBody); toolbar: search + today only
+    Views/CalendarTabView.swift   ← Tab 2: full-screen calendar (month grid top half, inline day entries bottom half)
+    Views/AddEntryView.swift      ← text/voice/image; edit mode via editingEntry: FoodEntry? param; capsule pill mode selector; .presentationDetents([.large])
+    Views/EntryCardView.swift     ← card with colored left bar, cornerRadius 16, shadow; relative/absolute timestamp, category badge, "edited" label
+    Views/CalendarView.swift      ← legacy month-grid sheet (kept for reference; navigation now uses CalendarTabView)
     Views/SearchView.swift        ← full-text search sheet; tapping a result navigates + highlights entry
     Views/SummaryView.swift       ← weekly/monthly grouped entry list sheet
-    Views/SettingsView.swift      ← daily reminder toggle + time picker + JSON export via ShareSheet; #if DEBUG "Clear Sample Data" section
-    Views/InsightsView.swift      ← analytics dashboard: 8 Swift Charts cards + period picker; presented from DayLogView toolbar
+    Views/SettingsView.swift      ← Tab 4: daily reminder toggle + time picker + JSON export; #if DEBUG "Clear Sample Data" section
+    Views/InsightsView.swift      ← Tab 3: analytics dashboard: 8 Swift Charts cards + period picker
+    Views/StyleGuide.swift        ← shared: Font extensions (.appBody/.appTitle/.appCaption/.appHeadline/.appSubheadline), CardModifier + .cardStyle(), EmptyStateView
     Services/SpeechService.swift
     Services/VisionService.swift
     Services/FoodDescriptionBuilder.swift
@@ -118,13 +122,23 @@ All tests use Swift Testing (`@Test`, `#expect`) and `@MainActor` unless noted:
 - **VisionServiceTests** (4 tests) uses XCTest — Swift Testing's 1-second async timeout (caused by `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`) kills Vision tests before the model initialises. `VNClassifyImageRequest` may not be available on the iOS 26.2 simulator beta; Vision tests skip gracefully rather than failing.
 - SwiftData tests use `ModelConfiguration(isStoredInMemoryOnly: true)` for full isolation
 
-## DayLogView architecture (home screen)
+## Navigation architecture (tab bar)
+The app uses a **4-tab bottom tab bar** as the primary navigation structure:
+
+- **Tab 1 — Today** (`TodayTabView`): `NavigationStack` wrapping `DayLogView`. Adds a gradient accent banner at the top via `.safeAreaInset(edge: .top)` showing greeting (good morning/afternoon/evening), friendly date, streak flame+count, and today's entry count.
+- **Tab 2 — Calendar** (`CalendarTabView`): Full-screen calendar. Top half is a month grid; bottom half shows the selected day's entries inline in a `List`. Tapping a day updates `@State selectedDate` — no push navigation needed.
+- **Tab 3 — Insights** (`InsightsView`): Analytics dashboard. `AppShellView` owns `@Query allEntries` and passes it directly.
+- **Tab 4 — Settings** (`SettingsView`): Settings. `AppShellView` computes `hasLoggedToday` from `StreakService` and passes it.
+
+`AppShellView` owns `@Query private var allEntries: [FoodEntry]` and a `StreakService` instance for computing data needed by child tabs.
+
+## DayLogView architecture (Today tab content)
 Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe-based day navigation:
 
-- **`DayLogView` (shell):** owns `@State var selectedIndex: Int` (the current page, replaces `displayedDate`), `@Query var allEntries` (all entries, for streak), streak badge, toolbar buttons (search, calendar, ellipsis menu for summary/settings, today), and all sheet presentations.
+- **`DayLogView` (shell):** owns `@State var selectedIndex: Int` (the current page), streak badge, toolbar buttons (search only + today pill), and the search sheet. Calendar, Insights, Settings, and Summary are now dedicated tabs — not sheets from DayLogView.
 - **Date range:** 366 pages total — index 0 = 365 days ago, index 365 = today (`todayIndex`). `referenceDate` and `todayIndex` are `private static let` computed once at launch. `displayedDate` is a computed property derived from `selectedIndex`.
 - **Swipe navigation:** `TabView(selection: $selectedIndex)` with `.tabViewStyle(.page(indexDisplayMode: .never))`. Swiping left/right moves between days natively without conflicting with the list's swipe actions.
-- **External navigation** (calendar picker, search, summary, quick actions) updates `selectedIndex` with `withAnimation(.none)` for an instant jump rather than a slow animated scroll across many pages.
+- **External navigation** (search, quick actions) updates `selectedIndex` with `withAnimation(.none)` for an instant jump.
 - **`DayLogBody` (private struct):** receives `date`, `isToday`, `@Binding highlightedEntryID`. Owns a `@Query` with a day-range predicate set in `init()`. Handles the entry list, FAB, swipe actions, context menu, add/edit sheets, and toast. Uses `ScrollViewReader` + `.task(id: highlightedEntryID)` to scroll and highlight an entry selected from Search.
 - Uses `List` (not LazyVStack) to enable `.swipeActions` for Edit (blue) and Delete (red, `allowsFullSwipe: true`)
 - **Delete:** single action — no confirmation alert. `allowsFullSwipe: true` means a full left-swipe deletes immediately. Also removes associated image file from Documents. `UINotificationFeedbackGenerator(.warning)`.
@@ -134,6 +148,8 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 ## AddEntryView architecture
 - Parameters: `forDate: Date` (defaults to today's start-of-day) and `editingEntry: FoodEntry?` (nil = create, non-nil = edit)
 - State initialised in `init()` via `_var = State(initialValue:)` pattern
+- Presented as `.presentationDetents([.large])` with `.presentationDragIndicator(.visible)`
+- Mode selector: custom `CapsuleModeSelector` (private struct) — rounded capsule pill with animated selection indicator; replaces the old `.pickerStyle(.segmented)` picker
 - Edit mode: hides mode selector, shows editable TextEditor pre-filled with `processedDescription`, sets `entry.updatedAt = Date()` on save
 - Category picker: `Picker` with `.menu` style; "Auto-detect" (nil) for create mode, "None" (nil) for edit mode; all 6 MealCategory cases listed
 - On create: `selectedCategory ?? categoryService.detect(hour:description:visionLabels:)` — manual pick overrides auto-detect
@@ -141,10 +157,19 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 
 ## EntryCardView architecture
 - Parameters: `entry: FoodEntry`, `isToday: Bool`, `isHighlighted: Bool = false`
+- Layout: `HStack` with a thin colored left bar (4 pt wide, `entry.category?.color ?? .clear`, rounded corners) + content VStack
+- Card style: `Color(UIColor.secondarySystemGroupedBackground)` background, `cornerRadius(16, .continuous)`, `shadow(opacity: 0.06, radius: 8, y: 4)`
 - Timestamp: `Text(.relative)` when `isToday`, `Text(.time)` when not
 - "· edited" italic caption shown when `entry.updatedAt != nil`
 - Category badge is a tappable `Menu` — pick any MealCategory or "Remove Tag" (sets to nil)
 - `isHighlighted`: renders an accent-color stroke overlay; used when navigating from Search
+
+## StyleGuide architecture
+`Views/StyleGuide.swift` — shared design tokens, no actor isolation needed:
+- **`Font` extensions:** `.appBody`, `.appTitle`, `.appCaption`, `.appHeadline`, `.appSubheadline` — all use `.rounded` design
+- **`CardModifier`:** `ViewModifier` applying `UIColor.secondarySystemGroupedBackground`, continuous `cornerRadius(16)`, shadow. Exposed as `.cardStyle()` on `View`.
+- **`EmptyStateView`:** reusable struct with `symbol: String`, `message: String`, `subMessage: String?`. Used in `CalendarTabView` for empty day state.
+- **Note:** `MealCategory.color` and `MealCategory.icon` are defined in `Models/MealCategory.swift` — do NOT redefine them in StyleGuide.swift.
 
 ## SettingsView architecture
 - Three sections: **Notifications** (daily reminder toggle + time picker), **Data** (Export Data button), and **Developer** (`#if DEBUG` only — "Clear Sample Data" destructive button with confirmation alert)
@@ -164,7 +189,7 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 - **SampleDataService**: `@MainActor final class`. Two public methods: `seedIfNeeded(context:)` — no-op if any `FoodEntry` exists (used on first launch); `seed(context:)` — unconditional, always inserts a full batch (used by "Clear & Re-seed" in Settings). Seeds 120 days of data (~85% of days have 1–3 entries), all 6 categories, all 3 input types, 35+ realistic food items, every `rawInput` prefixed with `[SAMPLE]`. Uses deterministic LCG (`SeededRNG`) for reproducible output. Image entries have `mediaURL = nil`.
 
 ## InsightsView architecture
-Presented as a `.large` sheet from the `chart.bar.fill` toolbar button in `DayLogView`. Takes `entries: [FoodEntry]` (passed from DayLogView's existing `@Query allEntries`).
+Presented as **Tab 3** in the bottom tab bar. `AppShellView` owns `@Query allEntries` and passes it as `entries: [FoodEntry]`.
 
 - **Period picker:** segmented control at top (7D / 30D / 3M / 1Y / All) drives all time-sensitive charts via `@State selectedPeriod: AnalyticsPeriod`
 - **Charts (Swift Charts only — no third-party deps):**
@@ -180,7 +205,7 @@ Presented as a `.large` sheet from the `chart.bar.fill` toolbar button in `DayLo
 - All derived data computed as private computed vars from `entries + selectedPeriod` — no `@State` for analytics results
 
 ## App entry point & quick actions
-`FoodLoggerApp.swift` uses `@UIApplicationDelegateAdaptor(AppDelegate.self)`. Root view is `AppRootView` (private struct), which wraps `NavigationStack { DayLogView() }` and calls `SampleDataService().seedIfNeeded(context: modelContext)` once on launch via `.task`. `AppDelegate` registers two `UIApplicationShortcutItem`s on launch:
+`FoodLoggerApp.swift` uses `@UIApplicationDelegateAdaptor(AppDelegate.self)`. Root view is `AppRootView` (private struct), which renders `AppShellView()` and calls `SampleDataService().seedIfNeeded(context: modelContext)` once on launch via `.task`. `AppDelegate` registers two `UIApplicationShortcutItem`s on launch:
 - **"Log Food Now"** (`com.foodlogger.quicklog`): posts `Notification.Name.quickAction` with `"addEntry"` → `DayLogView` navigates to today and opens the Add Entry sheet
 - **"View Today"** (`com.foodlogger.viewtoday`): posts `Notification.Name.quickAction` with `"viewToday"` → `DayLogView` navigates to today
 

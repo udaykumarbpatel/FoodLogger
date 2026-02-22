@@ -7,47 +7,57 @@ struct EntryCardView: View {
     @State private var isExpanded: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Header row
-            HStack(alignment: .center, spacing: 8) {
-                inputTypeIcon
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        HStack(spacing: 0) {
+            // Left color bar
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(entry.category?.color ?? Color.clear)
+                .frame(width: 4)
+                .padding(.vertical, 10)
 
-                categoryBadge
+            // Card content
+            VStack(alignment: .leading, spacing: 10) {
+                // Header row
+                HStack(alignment: .center, spacing: 8) {
+                    inputTypeIcon
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
 
-                Spacer()
+                    categoryBadge
 
-                HStack(spacing: 5) {
-                    timestampLabel
+                    Spacer()
 
-                    if entry.updatedAt != nil {
-                        Text("· edited")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .italic()
+                    HStack(spacing: 5) {
+                        timestampLabel
+
+                        if entry.updatedAt != nil {
+                            Text("· edited")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .italic()
+                        }
                     }
                 }
-            }
 
-            // Description
-            Text(entry.processedDescription)
-                .font(.body)
-                .multilineTextAlignment(.leading)
-                .foregroundStyle(.primary)
-                .lineLimit(isExpanded ? nil : 3)
+                // Description
+                Text(entry.processedDescription)
+                    .font(.body)
+                    .multilineTextAlignment(.leading)
+                    .foregroundStyle(.primary)
+                    .lineLimit(isExpanded ? nil : 3)
 
-            if isExpanded {
-                expandedContent
+                if isExpanded {
+                    expandedContent
+                }
             }
+            .padding(14)
         }
-        .padding(14)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(isHighlighted ? Color.accentColor : .clear, lineWidth: 2)
         )
+        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
         .onTapGesture {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isExpanded.toggle()

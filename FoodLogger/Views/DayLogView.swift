@@ -14,11 +14,7 @@ struct DayLogView: View {
     @State private var selectedIndex: Int = DayLogView.todayIndex
 
     // Sheets
-    @State private var showCalendar = false
     @State private var showSearch = false
-    @State private var showSummary = false
-    @State private var showSettings = false
-    @State private var showInsights = false
 
     private let streakService = StreakService()
 
@@ -57,13 +53,6 @@ struct DayLogView: View {
         .navigationTitle(formattedTitle)
         .navigationBarTitleDisplayMode(.large)
         .toolbar { toolbarContent }
-        .sheet(isPresented: $showCalendar) {
-            CalendarView(selectedDate: displayedDate) { date in
-                withAnimation(.none) {
-                    selectedIndex = index(for: date)
-                }
-            }
-        }
         .sheet(isPresented: $showSearch) {
             SearchView { date, entryID in
                 withAnimation(.none) {
@@ -71,19 +60,6 @@ struct DayLogView: View {
                 }
                 highlightedEntryID = entryID
             }
-        }
-        .sheet(isPresented: $showSummary) {
-            SummaryView { date in
-                withAnimation(.none) {
-                    selectedIndex = index(for: Calendar.current.startOfDay(for: date))
-                }
-            }
-        }
-        .sheet(isPresented: $showSettings) {
-            SettingsView(hasLoggedToday: streakInfo.hasEntryToday)
-        }
-        .sheet(isPresented: $showInsights) {
-            InsightsView(entries: allEntries)
         }
         .onReceive(NotificationCenter.default.publisher(for: .quickAction)) { notification in
             guard let action = notification.object as? String else { return }
@@ -113,24 +89,8 @@ struct DayLogView: View {
         }
 
         ToolbarItemGroup(placement: .navigationBarTrailing) {
-            Button { showInsights = true } label: {
-                Image(systemName: "chart.bar.fill")
-            }
             Button { showSearch = true } label: {
                 Image(systemName: "magnifyingglass")
-            }
-            Button { showCalendar = true } label: {
-                Image(systemName: "calendar")
-            }
-            Menu {
-                Button { showSummary = true } label: {
-                    Label("Summary", systemImage: "chart.bar.xaxis")
-                }
-                Button { showSettings = true } label: {
-                    Label("Settings", systemImage: "gearshape")
-                }
-            } label: {
-                Image(systemName: "ellipsis.circle")
             }
 
             if isToday {

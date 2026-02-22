@@ -1,0 +1,253 @@
+import SwiftUI
+import SwiftData
+
+struct CalendarTabView: View {
+    @Query private var allEntries: [FoodEntry]
+    @State private var displayedMonth: Date = {
+        let comps = Calendar.current.dateComponents([.year, .month], from: Date())
+        return Calendar.current.date(from: comps) ?? Date()
+    }()
+    @State private var selectedDate: Date? = nil
+
+    private let calendar = Calendar.current
+
+    private var daysWithEntries: Set<Date> {
+        Set(allEntries.map { calendar.startOfDay(for: $0.date) })
+    }
+
+    private var monthStart: Date {
+        let comps = calendar.dateComponents([.year, .month], from: displayedMonth)
+        return calendar.date(from: comps) ?? displayedMonth
+    }
+
+    private var monthDays: [Date?] {
+        let firstWeekday = calendar.component(.weekday, from: monthStart)
+        let paddingBefore = (firstWeekday - calendar.firstWeekday + 7) % 7
+        guard let range = calendar.range(of: .day, in: .month, for: monthStart) else { return [] }
+        var days: [Date?] = Array(repeating: nil, count: paddingBefore)
+        for day in 0..<range.count {
+            if let date = calendar.date(byAdding: .day, value: day, to: monthStart) {
+                days.append(date)
+            }
+        }
+        while days.count % 7 != 0 { days.append(nil) }
+        return days
+    }
+
+    private var selectedDayEntries: [FoodEntry] {
+        guard let date = selectedDate else { return [] }
+        let start = calendar.startOfDay(for: date)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)!
+        return allEntries.filter { $0.date >= start && $0.date < end }
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Month grid
+                VStack(spacing: 12) {
+                    monthNavHeader
+                    dayOfWeekRow
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible()), count: 7),
+                        spacing: 10
+                    ) {
+                        ForEach(Array(monthDays.enumerated()), id: \.offset) { _, date in
+                            if let date {
+                                CalendarTabDayCell(
+                                    date: date,
+                                    isSelected: selectedDate.map { calendar.isDate($0, inSameDayAs: date) } ?? false,
+                                    isToday: calendar.isDateInToday(date),
+                                    hasEntries: daysWithEntries.contains(calendar.startOfDay(for: date))
+                                )
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        selectedDate = date
+                                    }
+                                }
+                            } else {
+                                Color.clear.frame(height: 52)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                .padding(.bottom, 12)
+                .background(Color(UIColor.systemGroupedBackground))
+
+                Divider()
+
+                // Day entries panel
+                if let date = selectedDate {
+                    dayEntriesPanel(for: date)
+                } else {
+                    noSelectionPrompt
+                }
+            }
+            .background(Color(UIColor.systemGroupedBackground))
+            .navigationTitle("Calendar")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Today") {
+                        let comps = calendar.dateComponents([.year, .month], from: Date())
+                        displayedMonth = calendar.date(from: comps) ?? Date()
+                        selectedDate = calendar.startOfDay(for: Date())
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Month Nav Header
+
+    private var monthNavHeader: some View {
+        HStack {
+            Button {
+                if let prev = calendar.date(byAdding: .month, value: -1, to: displayedMonth) {
+                    withAnimation(.easeInOut(duration: 0.2)) { displayedMonth = prev }
+                }
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.title2.weight(.semibold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+
+            Spacer()
+
+            Text(monthStart.formatted(.dateTime.month(.wide).year()))
+                .font(.system(.title2, design: .rounded).bold())
+
+            Spacer()
+
+            Button {
+                if let next = calendar.date(byAdding: .month, value: 1, to: displayedMonth) {
+                    withAnimation(.easeInOut(duration: 0.2)) { displayedMonth = next }
+                }
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.title2.weight(.semibold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, 8)
+    }
+
+    // MARK: - Day of Week Row
+
+    private var dayOfWeekRow: some View {
+        HStack {
+            ForEach(0..<7, id: \.self) { i in
+                let index = (calendar.firstWeekday - 1 + i) % 7
+                Text(calendar.veryShortWeekdaySymbols[index])
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: - Day Entries Panel
+
+    @ViewBuilder
+    private func dayEntriesPanel(for date: Date) -> some View {
+        let entries = selectedDayEntries
+        let isToday = calendar.isDateInToday(date)
+        let title = isToday ? "Today" : date.formatted(.dateTime.weekday(.wide).month(.wide).day())
+
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title)
+                .font(.system(.headline, design: .rounded))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+
+            if entries.isEmpty {
+                EmptyStateView(
+                    symbol: "fork.knife",
+                    message: "Nothing logged",
+                    subMessage: "No entries for this day"
+                )
+                .padding(.top, 16)
+            } else {
+                List {
+                    ForEach(entries) { entry in
+                        EntryCardView(entry: entry, isToday: isToday)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+            }
+        }
+    }
+
+    // MARK: - No Selection Prompt
+
+    private var noSelectionPrompt: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "hand.tap")
+                .font(.system(size: 40))
+                .foregroundStyle(.tertiary)
+            Text("Tap a day to see entries")
+                .font(.system(.subheadline, design: .rounded))
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Day Cell
+
+private struct CalendarTabDayCell: View {
+    let date: Date
+    let isSelected: Bool
+    let isToday: Bool
+    let hasEntries: Bool
+
+    private let calendar = Calendar.current
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text("\(calendar.component(.day, from: date))")
+                .font(.system(.subheadline, design: .rounded).weight(isToday ? .bold : .regular))
+                .foregroundStyle(dayTextColor)
+                .frame(width: 38, height: 38)
+                .background(dayBackground)
+                .clipShape(Circle())
+
+            Circle()
+                .fill(Color.accentColor)
+                .frame(width: 5, height: 5)
+                .opacity(hasEntries ? 1 : 0)
+        }
+        .frame(height: 52)
+    }
+
+    @ViewBuilder
+    private var dayBackground: some View {
+        if isToday {
+            Circle().fill(Color.accentColor)
+        } else if isSelected {
+            Circle().fill(Color.accentColor.opacity(0.2))
+        } else {
+            Color.clear
+        }
+    }
+
+    private var dayTextColor: Color {
+        if isToday { return .white }
+        if isSelected { return .accentColor }
+        return .primary
+    }
+}
