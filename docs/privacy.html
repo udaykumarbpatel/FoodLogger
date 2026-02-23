@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="FoodLogger Privacy Policy — no data collection, no cloud, 100% on-device." />
+  <title>Privacy Policy — FoodLogger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-void:       #070B18;
+      --bg-navy:       #1B1F3B;
+      --bg-cream:      #F7F3EE;
+      --accent-orange: #FF6B35;
+      --accent-amber:  #FFB347;
+      --text-primary:  #F7F3EE;
+      --text-muted:    rgba(247,243,238,0.55);
+    }
+
+    html { scroll-behavior: smooth; font-size: 16px; }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg-void);
+      color: var(--text-primary);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Nav ── */
+    .nav {
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-wordmark {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
+      font-size: 1.25rem;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .nav-back {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--accent-orange);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.2s;
+    }
+    .nav-back:hover { opacity: 0.75; }
+
+    /* ── Main content ── */
+    main {
+      flex: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 60px 40px 100px;
+      width: 100%;
+    }
+
+    .page-eyebrow {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-amber);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
+      font-size: clamp(2rem, 5vw, 3rem);
+      line-height: 1.15;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .last-updated {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 56px;
+    }
+
+    /* ── Short version callout ── */
+    .short-version {
+      background: rgba(255, 107, 53, 0.08);
+      border-left: 3px solid var(--accent-orange);
+      border-radius: 0 12px 12px 0;
+      padding: 20px 24px;
+      margin-bottom: 56px;
+    }
+
+    .short-version p {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    /* ── Sections ── */
+    .policy-section {
+      margin-bottom: 48px;
+    }
+
+    h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    p {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    p:last-child { margin-bottom: 0; }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 12px;
+    }
+
+    ul li {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      padding: 6px 0 6px 20px;
+      position: relative;
+    }
+
+    ul li::before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: var(--accent-orange);
+      font-size: 0.8rem;
+    }
+
+    a {
+      color: var(--accent-orange);
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+
+    hr.section-rule {
+      border: none;
+      border-top: 1px solid rgba(247,243,238,0.08);
+      margin: 48px 0;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 1px solid rgba(247,243,238,0.08);
+      padding: 32px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer-copy {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .footer-links a {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--text-primary); }
+
+    @media (max-width: 600px) {
+      .nav { padding: 16px 20px; }
+      main { padding: 40px 20px 80px; }
+      .footer { padding: 24px 20px; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="nav" aria-label="Site navigation">
+    <a href="index.html" class="nav-wordmark">FoodLogger</a>
+    <a href="index.html" class="nav-back">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back
+    </a>
+  </nav>
+
+  <!-- Main -->
+  <main>
+    <p class="page-eyebrow">Legal</p>
+    <h1>Privacy Policy</h1>
+    <p class="last-updated">Last updated: February 2026</p>
+
+    <!-- Short version -->
+    <div class="short-version">
+      <p><strong>Short version:</strong> FoodLogger collects nothing. Your food diary lives entirely on your device. We have no servers, no accounts, and no way to access your data — because we never receive it.</p>
+    </div>
+
+    <!-- Sections -->
+    <div class="policy-section">
+      <h2>What data we collect</h2>
+      <p>None. FoodLogger does not collect, transmit, store, or share any personal information.</p>
+      <p>All data you enter — meal descriptions, photos, voice recordings, and app settings — is stored locally on your device using Apple's SwiftData framework. It never leaves your device.</p>
+    </div>
+
+    <hr class="section-rule" />
+
+    <div class="policy-section">
+      <h2>On-device processing</h2>
+      <p>Every feature in FoodLogger runs entirely on your device:</p>
+      <ul>
+        <li><strong>Voice logging</strong> — transcribed using Apple's on-device Speech framework (SFSpeechRecognizer)</li>
+        <li><strong>Photo logging</strong> — classified using Apple's on-device Vision framework (VNClassifyImageRequest)</li>
+        <li><strong>Category detection</strong> — processed locally using Apple's NaturalLanguage framework</li>
+        <li><strong>Notifications</strong> — scheduled and delivered locally; no push notification server is used</li>
+      </ul>
+    </div>
+
+    <hr class="section-rule" />
+
+    <div class="policy-section">
+      <h2>Third-party services</h2>
+      <p>FoodLogger uses no third-party SDKs, analytics tools, advertising networks, or crash reporting services. There are zero network requests made by the app.</p>
+    </div>
+
+    <hr class="section-rule" />
+
+    <div class="policy-section">
+      <h2>iCloud &amp; backups</h2>
+      <p>FoodLogger does not use iCloud sync. However, if you have iCloud backup enabled on your device, Apple may include app data as part of your standard device backup. This is handled entirely by iOS and is subject to <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener">Apple's Privacy Policy</a>.</p>
+    </div>
+
+    <hr class="section-rule" />
+
+    <div class="policy-section">
+      <h2>Data export &amp; deletion</h2>
+      <p>You are in full control of your data:</p>
+      <ul>
+        <li><strong>Export</strong> — use Settings → Export Data to download a JSON copy of all your entries</li>
+        <li><strong>Delete entries</strong> — swipe left on any entry in the app to delete it</li>
+        <li><strong>Delete all data</strong> — deleting FoodLogger from your device removes all app data permanently</li>
+      </ul>
+    </div>
+
+    <hr class="section-rule" />
+
+    <div class="policy-section">
+      <h2>Children's privacy</h2>
+      <p>FoodLogger does not knowingly collect information from anyone, including children under 13. As described above, no data is collected at all.</p>
+    </div>
+
+    <hr class="section-rule" />
+
+    <div class="policy-section">
+      <h2>Changes to this policy</h2>
+      <p>If this policy changes, the updated version will be posted here. Given the nature of the app (zero data collection), significant changes are unlikely.</p>
+    </div>
+
+    <hr class="section-rule" />
+
+    <div class="policy-section">
+      <h2>Contact</h2>
+      <p>Questions? Open an issue on <a href="https://github.com/udaykumarbpatel/FoodLogger/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span class="footer-copy">&copy; 2026 FoodLogger</span>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="https://github.com/udaykumarbpatel/FoodLogger/issues" target="_blank" rel="noopener">Support</a>
+    </nav>
+  </footer>
+
+</body>
+</html>

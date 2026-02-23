@@ -2,7 +2,7 @@
 
 ## Active
 - [ ] **Add Feedback form to the app.**
-- [ ] **Update the Privacy Policy and Support link in the footer.**
+- [x] ~~**Update the Privacy Policy and Support link in the footer.**~~ (Feb 2026)
 - [ ] **Have a Header**
 
 ## Waiting On
