@@ -91,6 +91,8 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.brandVoid, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .alert("Notifications Disabled", isPresented: $showPermissionDeniedAlert) {
                 Button("Open Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {

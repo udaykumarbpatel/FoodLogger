@@ -52,6 +52,8 @@ struct DayLogView: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
         .navigationTitle(formattedTitle)
         .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(Color.brandVoid, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar { toolbarContent }
         .sheet(isPresented: $showSearch) {
             SearchView { date, entryID in

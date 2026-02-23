@@ -228,6 +228,7 @@ Compact tile design — 4–5 cards visible on screen simultaneously without scr
 - **`CardModifier`:** `ViewModifier` applying `secondarySystemGroupedBackground` in dark mode / `brandSurface` in light mode, continuous `cornerRadius(16)`, shadow. Exposed as `.cardStyle()` on `View`.
 - **`EmptyStateView`:** reusable struct with `symbol: String`, `message: String`, `subMessage: String?`. Circle bg + brandAccent icon + brandPrimary title.
 - **Background pattern for dark views:** Use view-builder `.background { ZStack { Color.brandVoid; Color.brandSurface.opacity(0.03) }.clipShape(RoundedRectangle(...)) }` — **NOT** `.background(ZStack{...}, in:)` because `ZStack` is not a `ShapeStyle`.
+- **Navigation bar theming pattern:** Every `NavigationStack` in a tab must add `.toolbarBackground(Color.brandVoid, for: .navigationBar)` + `.toolbarColorScheme(.dark, for: .navigationBar)` so the nav bar stays void-dark with cream title text. `UINavigationBar.appearance()` in `AppShellView.init()` sets the global default but SwiftUI's per-view toolbar modifiers take precedence and are more reliable in iOS 26.
 - **Note:** `MealCategory.color` and `MealCategory.icon` are defined in `Models/MealCategory.swift` — do NOT redefine them in StyleGuide.swift.
 
 ## SettingsView architecture

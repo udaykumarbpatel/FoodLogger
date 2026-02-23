@@ -96,6 +96,8 @@ struct CalendarTabView: View {
             .background(Color.brandVoid)
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.brandVoid, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Today") {

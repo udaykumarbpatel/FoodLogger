@@ -157,6 +157,8 @@ struct InsightsView: View {
             .background(Color.brandVoid)
             .navigationTitle("Insights")
             .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(Color.brandVoid, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .onAppear {
                 weeklySummary = summaryService.generateSummary(from: entries)
             }
