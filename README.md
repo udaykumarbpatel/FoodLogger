@@ -20,7 +20,10 @@ A native iOS food diary app with a **Dark Editorial Journal** aesthetic. Log wha
 - Full-text search across all entries
 - Weekly and monthly summary view
 - Consecutive-day streak counter
-- Analytics dashboard (Insights tab): weekly story headline, top foods, daily activity, category breakdown, meal timing, week-over-week comparison, monthly heatmap, food search, stats card, personal records card (longest streak / best day / unique foods)
+- Analytics dashboard (Insights tab): weekly story headline, top foods, daily activity, category breakdown, meal timing, week-over-week comparison, monthly heatmap, food search, stats card, personal records card (longest streak / best day / unique foods), mood distribution chart
+- Tap any food in Insights search to see its full history — occurrence timeline, day-of-week pattern, and time-of-day distribution
+- Mood/Energy tagging: log how a meal made you feel (⚡️ Energised, 😌 Satisfied, 😐 Neutral, 😴 Sluggish, 😣 Uncomfortable); mood emoji shown on each card
+- Favourites quick-log: your top 5 most-eaten foods appear as tappable pills when adding a new entry
 - Calendar tab shows entry-density heatmap — deeper orange for more entries on a day
 - Entry save celebration: spring haptic + contextual toast ("First entry today!" / "Meal #N today!") on the Today tab
 - Streak flame color-shifts amber → orange → red as the streak grows
@@ -54,8 +57,9 @@ FoodLogger/
 ├── App/
 │   └── FoodLoggerApp.swift          # @main, SwiftData ModelContainer, AppDelegate, quick actions, Monday recap trigger
 ├── Models/
-│   ├── FoodEntry.swift              # @Model — id, date, rawInput, inputType, processedDescription, mediaURL, category, updatedAt
-│   └── MealCategory.swift           # enum — breakfast, lunch, snack, dinner, dessert, beverage
+│   ├── FoodEntry.swift              # @Model — id, date, rawInput, inputType, processedDescription, mediaURL, category, mood, updatedAt
+│   ├── MealCategory.swift           # enum — breakfast, lunch, snack, dinner, dessert, beverage
+│   └── MoodTag.swift                # enum — energised, satisfied, neutral, sluggish, uncomfortable; has .emoji, .label, .color
 ├── Views/
 │   ├── AppShellView.swift           # 4-tab outer TabView; weekly recap deep-link listener
 │   ├── TodayTabView.swift           # Gradient banner + DayLogView
@@ -66,7 +70,8 @@ FoodLogger/
 │   ├── CalendarView.swift           # Month-grid sheet for date navigation
 │   ├── SearchView.swift             # Full-text search across all entries
 │   ├── SummaryView.swift            # Weekly / monthly grouped entry list
-│   ├── InsightsView.swift           # Analytics dashboard — story headline, stats, records, 8 Swift Charts cards + period picker
+│   ├── FoodItemTimelineView.swift   # Sheet: occurrence timeline, day-of-week pattern, time-of-day distribution for a specific food
+│   ├── InsightsView.swift           # Analytics dashboard — story headline, stats, records, 9 Swift Charts cards + period picker
 │   ├── WeeklyRecapView.swift        # 6-page animated weekly recap; ConfettiView/ConfettiParticle now internal for reuse
 │   ├── StyleGuide.swift             # Brand palette (brandVoid/brandPrimary/brandAccent/brandWarm/brandSurface/brandSuccess), rounded + serif Font extensions, CardModifier, EmptyStateView
 │   ├── AppIconView.swift            # 1024×1024 SwiftUI icon canvas ("YOUR FOOD." / "YOUR STORY." typographic wordmark); export PNG via Settings → Developer → Export App Icon
@@ -81,7 +86,7 @@ FoodLogger/
     ├── StreakService.swift           # Consecutive-day streak computation
     ├── NotificationService.swift    # Daily reminders + Sunday weekly recap + 8pm streak-at-risk notification
     ├── ExportService.swift          # JSON serialisation + filename generation
-    ├── InsightsService.swift        # Typed analytics over [FoodEntry] — 8 methods, 5 periods
+    ├── InsightsService.swift        # Typed analytics over [FoodEntry] — topItems, dailyCounts, categoryDistribution, inputTypeBreakdown, mealTiming, weekOverWeekTrend, monthlyHeatmap, coOccurrence, moodDistribution + food-item timeline methods
     ├── WeeklySummaryService.swift   # WeeklySummary computation + headline/subheadline generation
     └── SampleDataService.swift      # 120-day deterministic sample data seeding
 FoodLoggerTests/
@@ -149,3 +154,10 @@ xcodebuild test \
 |-----|------|---------|
 | `"onboardingComplete"` | `Bool` | Set after first-launch onboarding is dismissed |
 | `"triggeredMilestones"` | `[Int]` | Milestone entry counts (10/25/50/100/250) already celebrated; prevents repeat confetti |
+| `"widget_streak"` | `Int` | Current streak written by app for Home Screen Widget |
+| `"widget_today_count"` | `Int` | Today's entry count written by app for Home Screen Widget |
+| `"widget_last_entry"` | `String` | Most recent entry today written by app for Home Screen Widget |
+
+## Home Screen Widget
+
+Widget source lives in `Widget/FoodLoggerWidget.swift` — **not compiled into the main app target**. The app already writes all required data to a shared App Group UserDefaults (`group.com.ashwath.ios.FoodLogger`) on every entry change. To activate the widget, follow the 5-minute setup in `Widget/SETUP.md`.
