@@ -897,10 +897,92 @@
       .how-step-number { font-size: 90px; }
       .how-step-text { font-size: 19px; }
     }
+
+    /* ─── Sticky nav ─────────────────────────────────────────────────────── */
+    .site-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      transition: background 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease;
+      border-bottom: 1px solid transparent;
+    }
+
+    .site-nav.scrolled {
+      background: rgba(7, 11, 24, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-color: rgba(247, 243, 238, 0.07);
+    }
+
+    .nav-wordmark {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 900;
+      font-size: 1.125rem;
+      color: var(--text-primary);
+      text-decoration: none;
+      letter-spacing: -0.01em;
+      flex-shrink: 0;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      margin: 0 auto;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+      letter-spacing: 0.01em;
+    }
+    .nav-links a:hover { color: var(--text-primary); }
+
+    .nav-cta {
+      display: inline-block;
+      background: var(--accent-orange);
+      color: #fff !important;
+      font-size: 0.8125rem !important;
+      font-weight: 500;
+      padding: 8px 20px;
+      border-radius: 50px;
+      text-decoration: none;
+      transition: transform 0.2s, filter 0.2s;
+      flex-shrink: 0;
+    }
+    .nav-cta:hover { transform: scale(1.04); filter: brightness(1.1); }
+
+    /* hide text links on small screens, keep wordmark + cta */
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .site-nav { padding: 0 20px; }
+    }
   </style>
 </head>
 
 <body>
+
+  <!-- ─── Sticky nav ──────────────────────────────────────────────────── -->
+  <header class="site-nav" id="site-nav" role="banner">
+    <a href="#hero" class="nav-wordmark">FoodLogger</a>
+    <ul class="nav-links" role="list">
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#privacy">Privacy</a></li>
+      <li><a href="#recap">Weekly Recap</a></li>
+    </ul>
+    <a href="#" class="nav-cta" aria-label="Download FoodLogger on the App Store">Download</a>
+  </header>
 
   <!-- ═══════════════════════════════════════════════════════════════
        SECTION 1 — HERO
@@ -1186,6 +1268,16 @@
   </section>
 
   <script>
+    // ─── Sticky nav: add .scrolled class after 10px ───────────────────────
+    (function () {
+      var nav = document.getElementById('site-nav');
+      function onScroll() {
+        nav.classList.toggle('scrolled', window.scrollY > 10);
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    })();
+
     // ─── Scroll reveal via IntersectionObserver ───────────────────────────
     (function () {
       var targets = document.querySelectorAll('.reveal');
