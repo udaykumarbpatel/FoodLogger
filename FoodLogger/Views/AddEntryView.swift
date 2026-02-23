@@ -138,9 +138,18 @@ struct AddEntryView: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { Task { await saveEntry() } }
-                        .fontWeight(.semibold)
-                        .disabled(!canSave || isSaving)
+                    Button {
+                        Task { await saveEntry() }
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text("Save")
+                        }
+                    }
+                    .fontWeight(.semibold)
+                    .disabled(!canSave || isSaving)
                 }
             }
             .sheet(isPresented: $showCameraSheet) {
@@ -381,6 +390,7 @@ struct AddEntryView: View {
                                           : Color.accentColor.opacity(0.15))
                         )
                 }
+                .accessibilityLabel(speechService.isRecording ? "Stop recording" : "Start recording")
             }
 
             // Status label

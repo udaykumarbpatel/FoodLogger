@@ -140,6 +140,7 @@ struct CalendarTabView: View {
                         .background(Color.brandSurface.opacity(0.07))
                         .clipShape(Circle())
                 }
+                .accessibilityLabel("Previous Month")
 
                 Button {
                     if let next = calendar.date(byAdding: .month, value: 1, to: displayedMonth) {
@@ -153,6 +154,7 @@ struct CalendarTabView: View {
                         .background(Color.brandSurface.opacity(0.07))
                         .clipShape(Circle())
                 }
+                .accessibilityLabel("Next Month")
             }
         }
         .padding(.horizontal, 16)
