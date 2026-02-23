@@ -1,6 +1,6 @@
 # FoodLogger
 
-A native iOS food diary app. Log what you ate — by typing, speaking, or photographing your meal. Everything is stored as plain text tied to a calendar date. No calories, no macros, no accounts.
+A native iOS food diary app with a **Dark Editorial Journal** aesthetic. Log what you ate — by typing, speaking, or photographing your meal. Everything is stored as plain text tied to a calendar date. No calories, no macros, no accounts.
 
 ## Features
 
@@ -62,13 +62,13 @@ FoodLogger/
 │   ├── CalendarTabView.swift        # Full-screen split calendar + inline day entries
 │   ├── DayLogView.swift             # Home screen (shell + body pattern), streak badge, search toolbar
 │   ├── AddEntryView.swift           # Text / Voice (β) / Photo (β) input + edit mode; beta banners
-│   ├── EntryCardView.swift          # Card with colored left bar, category badge menu, "edited" label
+│   ├── EntryCardView.swift          # Card with full-width colored category header band + dark body, category badge menu, "edited" label
 │   ├── CalendarView.swift           # Month-grid sheet for date navigation
 │   ├── SearchView.swift             # Full-text search across all entries
 │   ├── SummaryView.swift            # Weekly / monthly grouped entry list
 │   ├── InsightsView.swift           # Analytics dashboard — story headline, stats, records, 8 Swift Charts cards + period picker
 │   ├── WeeklyRecapView.swift        # 6-page animated weekly recap; ConfettiView/ConfettiParticle now internal for reuse
-│   ├── StyleGuide.swift             # Font extensions, CardModifier, EmptyStateView
+│   ├── StyleGuide.swift             # Brand palette (brandVoid/brandPrimary/brandAccent/brandWarm/brandSurface/brandSuccess), rounded + serif Font extensions, CardModifier, EmptyStateView
 │   ├── AppIconView.swift            # 1024×1024 SwiftUI icon canvas ("YOUR FOOD." / "YOUR STORY." typographic wordmark); export PNG via Settings → Developer → Export App Icon
 │   ├── LaunchScreenView.swift       # Animated launch screen — same typographic wordmark slides up on near-black navy; 1.4 s then calls onComplete
 │   ├── OnboardingView.swift         # 4-page first-launch onboarding; page 1 shows typographic logo

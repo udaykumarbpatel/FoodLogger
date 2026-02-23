@@ -13,35 +13,16 @@ struct EntryCardView: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Left color bar — matches category pill color
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(categoryColor)
-                .frame(width: 4)
-                .padding(.vertical, 10)
+        VStack(spacing: 0) {
+            // ── Header band ──────────────────────────────────────────────
+            categoryHeaderBand
 
-            // Card content
-            VStack(alignment: .leading, spacing: 8) {
-                // Top row: category pill (content-sized) + timestamp
-                HStack(alignment: .center) {
-                    categoryPill
-                    Spacer()
-                    HStack(spacing: 4) {
-                        timestampLabel
-                        if entry.updatedAt != nil {
-                            Text("· edited")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .italic()
-                                .accessibilityLabel("edited")
-                        }
-                    }
-                }
-
+            // ── Card body ────────────────────────────────────────────────
+            VStack(alignment: .leading, spacing: 10) {
                 // Description
                 Text(entry.processedDescription)
                     .font(.system(.body, design: .default, weight: .medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.brandSurface)
                     .multilineTextAlignment(.leading)
                     .lineLimit(isExpanded ? nil : 2)
                     .minimumScaleFactor(0.85)
@@ -50,25 +31,43 @@ struct EntryCardView: View {
                 if isExpanded {
                     expandedContent
                 }
+
+                // ── Footer row ───────────────────────────────────────────
+                HStack(spacing: 6) {
+                    timestampLabel
+                    if entry.updatedAt != nil {
+                        Text("· edited")
+                            .font(.caption)
+                            .foregroundStyle(Color.brandWarm.opacity(0.7))
+                            .italic()
+                            .accessibilityLabel("edited")
+                    }
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(categoryColor.opacity(0.6))
+                        .accessibilityHidden(true)
+                }
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.top, 12)
+            .padding(.bottom, 12)
+            .background(
+                ZStack {
+                    Color.brandVoid
+                    categoryColor.opacity(0.07)
+                }
+            )
         }
-        .background(
-            ZStack {
-                Color(UIColor.secondarySystemGroupedBackground)
-                categoryColor.opacity(0.06)
-            }
-        )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(isHighlighted ? Color.brandAccent : .clear, lineWidth: 2)
+                .stroke(isHighlighted ? Color.brandAccent : categoryColor.opacity(0.25), lineWidth: isHighlighted ? 2 : 1)
         )
-        .shadow(color: categoryColor.opacity(0.15), radius: 6, x: 0, y: 3)
+        .shadow(color: categoryColor.opacity(0.22), radius: 8, x: 0, y: 4)
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.easeInOut(duration: 0.22)) {
                 isExpanded.toggle()
             }
         }
@@ -76,9 +75,9 @@ struct EntryCardView: View {
         .accessibilityHint(isExpanded ? "Double tap to collapse" : "Double tap to expand")
     }
 
-    // MARK: - Category Pill (content-sized, tappable Menu)
+    // MARK: - Category Header Band
 
-    private var categoryPill: some View {
+    private var categoryHeaderBand: some View {
         Menu {
             ForEach(MealCategory.allCases, id: \.self) { cat in
                 Button {
@@ -94,18 +93,19 @@ struct EntryCardView: View {
                 Label("Remove Tag", systemImage: "xmark.circle")
             }
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 Image(systemName: entry.category?.icon ?? "tag")
-                    .font(.caption.weight(.semibold))
+                    .font(.caption.weight(.bold))
                     .accessibilityHidden(true)
-                Text(entry.category?.displayName ?? "Tag")
-                    .font(.caption.weight(.semibold))
+                Text((entry.category?.displayName ?? "Untagged").uppercased())
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .kerning(0.8)
+                Spacer()
             }
-            .foregroundStyle(categoryColor)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(categoryColor.opacity(0.15))
-            .clipShape(Capsule())
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .frame(height: 30)
+            .background(categoryColor)
         }
         .accessibilityLabel("Category: \(entry.category?.displayName ?? "None"). Double tap to change.")
     }
@@ -121,7 +121,7 @@ struct EntryCardView: View {
             }
         }
         .font(.caption)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(Color.brandSurface.opacity(0.4))
     }
 
     // MARK: - Expanded Content
@@ -133,15 +133,17 @@ struct EntryCardView: View {
         }
         if entry.rawInput != entry.processedDescription {
             Divider()
+                .overlay(categoryColor.opacity(0.3))
             VStack(alignment: .leading, spacing: 4) {
                 Text("Original")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .kerning(0.8)
+                    .foregroundStyle(Color.brandSurface.opacity(0.3))
                     .textCase(.uppercase)
                     .accessibilityLabel("Original input")
                 Text(entry.rawInput)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.brandSurface.opacity(0.55))
                     .accessibilityLabel(entry.rawInput)
             }
         }
@@ -158,7 +160,7 @@ struct EntryCardView: View {
                     .scaledToFill()
                     .frame(maxWidth: .infinity)
                     .frame(height: 160)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                     .accessibilityLabel("Meal photo")
             }
         }

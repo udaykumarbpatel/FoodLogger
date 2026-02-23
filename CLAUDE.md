@@ -9,24 +9,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Native iOS food diary app. Users log meals by text, voice, or photo. Plain-text descriptions only — no calories or macros. 100% on-device; zero network requests.
 
 ## Design language
-Visual identity: bold, energetic, deep colors. Journal meets food.
+Visual identity: **Dark Editorial Journal** — deep near-black backgrounds, cream serif typography for editorial moments, vivid orange accents. Journal meets food.
 
 **Color palette** (defined in `StyleGuide.swift` as `Color` extensions):
 | Token | Hex | Usage |
 |---|---|---|
-| `brandPrimary` | `#1B1F3B` | Deep navy — backgrounds, headers, tab bar |
-| `brandAccent` | `#FF6B35` | Vivid orange — CTAs, streaks, highlights, selected tab |
-| `brandWarm` | `#FFB347` | Amber — secondary accents, taglines, gradients |
-| `brandSurface` | `#F7F3EE` | Warm off-white — card backgrounds (light mode) |
+| `brandVoid` | `#070B18` | Near-black navy — primary page backgrounds (Today, Calendar, Insights) |
+| `brandPrimary` | `#1B1F3B` | Deep navy — headers, secondary backgrounds, tab bar |
+| `brandAccent` | `#FF6B35` | Vivid orange — CTAs, FAB, streaks, highlights, selected tab, category header bands |
+| `brandWarm` | `#FFB347` | Amber — secondary accents, taglines, chart labels, ALL CAPS section headers |
+| `brandSurface` | `#F7F3EE` | Warm off-white — text on dark backgrounds, day numbers, title text |
 | `brandSuccess` | `#2ECC71` | Green — streaks, positive trends |
 
-**Typography** — all `.rounded` design, weight escalated:
-- `.appDisplay` — size 34, `.black` — hero numbers, page titles
+**Typography** — two type families:
+
+*Rounded (functional UI):*
+- `.appDisplay` — size 34, `.black` — hero numbers
 - `.appTitle` — `.title2`, `.black` — section headers
 - `.appHeadline` — `.headline`, `.bold` — card titles, labels
 - `.appSubheadline` — `.subheadline`, `.medium`
 - `.appBody` — `.body`, `.medium`
 - `.appCaption` — `.caption`, `.regular`
+
+*Serif (editorial moments — dates, month names, headlines, empty states):*
+- `.appDisplaySerif` — size 34, `.black`, `.serif` — large hero serif text
+- `.appTitleSerif` — `.title2`, `.bold`, `.serif` — section titles, day titles, empty states
+- `.appHeadlineSerif` — `.headline`, `.bold`, `.serif` — panel headers, selected-day label
+- **Note:** Correct parameter order for TextStyle overload is `Font.system(.textStyle, design: .serif, weight: .bold)` — `design` must come before `weight`.
 
 **Graphic motif:** typographic wordmark — "YOUR FOOD." in cream/off-white bold serif (`.system(.serif, weight: .black)`), "YOUR STORY." in vivid orange bold italic serif. Background is near-black navy (`#070B18` ≈ `Color(red:0.028, green:0.043, blue:0.094)`), darker than `brandPrimary`. Used in `AppIconView` (1024×1024 canvas), `LaunchScreenView` (animated slide-up), and `OnboardingView` page 1.
 
@@ -89,19 +98,19 @@ FoodLogger/                     ← git root & Xcode project root
     Views/OnboardingView.swift    ← 4-page fullScreenCover onboarding (Welcome/LogAnything/Patterns/Private); custom capsule page indicator; skip button; UserDefaults key "onboardingComplete"; shown once on first launch
     Views/LaunchScreenView.swift  ← animated launch screen: typographic wordmark ("YOUR FOOD." cream serif slides up, "YOUR STORY." orange italic serif follows, subtitle fades last); near-black navy background; calls onComplete after 1.4s; shown every launch
     Views/AppIconView.swift       ← SwiftUI reference view of the app icon design (1024×1024 canvas; near-black navy bg + "YOUR FOOD." cream serif + "YOUR STORY." orange italic serif); NO .clipShape — iOS applies its own mask so the PNG must be a full square; export via Settings → Developer → Export App Icon
-    Views/AppShellView.swift      ← ROOT: ZStack(TabView + MilestoneOverlayView); 4 tabs (Today/Calendar/Insights/Settings); owns @Query allEntries + NotificationService; configures UITabBar.appearance; listens for .openWeeklyRecap; tracks milestones (UserDefaults key "triggeredMilestones") + schedules streak-risk notification on entry count change
+    Views/AppShellView.swift      ← ROOT: ZStack(TabView + MilestoneOverlayView); 4 tabs (Today/Calendar/Insights/Settings); owns @Query allEntries + NotificationService; in init() configures UITabBar.appearance (navy bg, orange selected, dim-white unselected) AND UINavigationBar.appearance (brandVoid bg, cream title text, orange tint); TabView uses .toolbarColorScheme(.dark, for: .tabBar) + .preferredColorScheme(.dark) to force dark mode for the whole app (designed as a dark-only journal); listens for .openWeeklyRecap; tracks milestones + schedules streak-risk notification on entry count change
     Views/WeeklyRecapView.swift   ← 6-page fullScreenCover recap (Hero/Stats/TopFood/Categories/Consistency/Share); Canvas confetti on perfect week; ImageRenderer share card; ConfettiView + ConfettiParticle are now internal (not private) so AppShellView can reuse them
-    Views/TodayTabView.swift      ← Tab 1: NavigationStack wrapping DayLogView + gradient banner (greeting, streak, today count); flame icon shifts color amber→orange→red based on streak count (brandWarm <7, orange 7–13, red 14+)
+    Views/TodayTabView.swift      ← Tab 1: NavigationStack wrapping DayLogView + dark editorial banner (brandVoid bg, ALL CAPS amber greeting, appTitleSerif date, black-weight streak flame+count, caption entry count); orange accent rule 1pt at bottom; flame color: brandWarm <7, orange 7–13, red 14+
     Views/DayLogView.swift        ← swipe-between-days shell (DayLogView) + entry list body (DayLogBody); toolbar: search + today only; DayLogBody fires success haptic + contextual toast ("First entry today!" / "Meal #N today!") via .onChange(of: entries.count) when count increases on today's page
-    Views/CalendarTabView.swift   ← Tab 2: full-screen calendar (month grid top half, inline day entries bottom half); day cells use heatmap color density (brandAccent opacity 0→0.25→0.55→0.85 for 0/1/2/3+ entries) instead of a dot indicator; CalendarTabDayCell takes entryCount: Int not hasEntries: Bool
+    Views/CalendarTabView.swift   ← Tab 2: full-screen calendar on brandVoid background; month header uses appDisplaySerif cream name + amber year + circular nav buttons; day-of-week row in amber rounded; day cells: heatmap (brandAccent opacity 0→0.22→0.50→0.80 for 0/1/2/3+ entries), selected=brandAccent fill, today=cream ring; brandAccent divider between grid and day panel; day entries panel uses appHeadlineSerif title; CalendarTabDayCell takes entryCount: Int
     Views/AddEntryView.swift      ← text/voice/image; edit mode via editingEntry: FoodEntry? param; capsule pill mode selector; .presentationDetents([.large])
-    Views/EntryCardView.swift     ← card with colored left bar, cornerRadius 16, shadow; relative/absolute timestamp, category badge, "edited" label
+    Views/EntryCardView.swift     ← card with full-width colored category header band (30pt, ALL CAPS icon+label, tappable Menu for category change) + dark body (brandVoid + category tint); cornerRadius 16; footer row with timestamp + "· edited"; colored shadow; brandAccent stroke when highlighted
     Views/CalendarView.swift      ← legacy month-grid sheet (kept for reference; navigation now uses CalendarTabView)
     Views/SearchView.swift        ← full-text search sheet; tapping a result navigates + highlights entry
     Views/SummaryView.swift       ← weekly/monthly grouped entry list sheet
     Views/SettingsView.swift      ← Tab 4: daily reminder toggle + time picker + JSON export; #if DEBUG "Clear Sample Data" + "Clear & Re-seed" section
-    Views/InsightsView.swift      ← Tab 3: analytics dashboard; storyHeadlineCard (WeeklySummaryService headline + subheadline, refreshed onAppear) above period picker; statsCard (current streak / consistency / period entries) + recordsCard (longest streak ever / best day count / unique foods count) + 8 Swift Charts cards
-    Views/StyleGuide.swift        ← shared: Color(hex:) initializer + brand palette (brandPrimary/brandAccent/brandWarm/brandSurface/brandSuccess); Font extensions (.appBody/.appTitle/.appCaption/.appHeadline/.appSubheadline/.appDisplay); CardModifier (dark-mode aware, uses brandSurface in light mode) + .cardStyle(); EmptyStateView (circle bg + brandAccent icon + brandPrimary title)
+    Views/InsightsView.swift      ← Tab 3: analytics dashboard on brandVoid background; storyHeadlineCard (ALL CAPS orange eyebrow, appTitleSerif headline, amber subheadline) above period picker; chartCard containers use ALL CAPS amber label + brandVoid bg + 3% surface tint + subtle border; statsCard + recordsCard + 8 Swift Charts cards; all backgrounds use view-builder syntax `.background { ZStack{...} }` (not ShapeStyle — ZStack is not a ShapeStyle)
+    Views/StyleGuide.swift        ← shared: Color(hex:) initializer + brand palette (brandVoid/brandPrimary/brandAccent/brandWarm/brandSurface/brandSuccess); Font extensions — rounded (.appBody/.appTitle/.appCaption/.appHeadline/.appSubheadline/.appDisplay) + serif (.appDisplaySerif/.appTitleSerif/.appHeadlineSerif); CardModifier (dark-mode aware) + .cardStyle(); EmptyStateView
     Services/SpeechService.swift
     Services/VisionService.swift
     Services/FoodDescriptionBuilder.swift
@@ -199,23 +208,26 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 - **Time picker:** `@State private var entryTime: Date` — initialised smartly on create: today → `Date()` (current time), past day → `forDate` (midnight, so the user sets an intentional time); edit mode → `entry.createdAt`. `DatePicker` with `.hourAndMinute` components shown below the category picker in both modes. `resolvedCreatedAt(day:time:)` combines the year/month/day from `forDate` (or `entry.date`) with the hour/minute from `entryTime` and writes the result to `entry.createdAt` on save, preserving day-grouping while updating sort order within the day.
 
 ## EntryCardView architecture
-Compact tile design — 4–5 cards visible on screen simultaneously without scrolling.
+Compact tile design — 4–5 cards visible on screen simultaneously without scrolling. Dark editorial style.
 
 - Parameters: `entry: FoodEntry`, `isToday: Bool`, `isHighlighted: Bool = false`
 - Layout: `VStack(spacing: 0)` with two zones clipped by `RoundedRectangle(cornerRadius: 16, .continuous)`:
-  - **Header band** (28pt tall): full-width solid `entry.category?.color` background (nil → `#95A5A6` gray); SF Symbol icon + uppercase category name in white `.bold .caption`; entire band is a tappable `Menu` to change/remove the category
-  - **Card body**: `ZStack` background of `secondarySystemGroupedBackground` + `categoryColor.opacity(0.08)` wash; `processedDescription` in `.body .medium`, `.lineLimit(2)` default (expands on tap), `.minimumScaleFactor(0.85)`; bottom row: timestamp left, "· edited" italic if `updatedAt != nil`, decorative `›` chevron right
-- Shadow: `categoryColor.opacity(0.15)`, radius 6, y 3 — colored to match category
-- `isHighlighted`: `brandAccent` stroke overlay (2pt), used when navigating from Search
+  - **Category header band** (30pt tall): full-width solid `entry.category?.color` background (nil → `#95A5A6` gray); SF Symbol icon + ALL CAPS category name in white `.bold .caption`; entire band is a tappable `Menu` to change/remove the category
+  - **Card body**: dark `Color.brandVoid` + `categoryColor.opacity(0.07)` tint (applied via view-builder `.background {}`); `processedDescription` in `.body .medium`, `.lineLimit(2)` default (expands on tap), `.minimumScaleFactor(0.85)`, `Color.brandSurface` foreground; **footer row**: timestamp in `brandSurface.opacity(0.5)`, "· edited" italic in `brandWarm` if `updatedAt != nil`, `›` chevron in `brandSurface.opacity(0.25)` right
+- Shadow: `categoryColor.opacity(0.22)`, radius 8, y 3 — colored to match category
+- Border: `categoryColor.opacity(0.18)` 1pt stroke; `brandAccent` 2pt stroke when `isHighlighted` (from Search)
 - Tap on body toggles `@State isExpanded` — expands description + shows thumbnail and original input if applicable
 - Expanded content: photo thumbnail (160pt height, cornerRadius 8) + original rawInput section when it differs from processedDescription
 - All interactive elements have `accessibilityLabel`; decorative elements (icon, chevron) are `accessibilityHidden(true)`
 
 ## StyleGuide architecture
 `Views/StyleGuide.swift` — shared design tokens, no actor isolation needed:
-- **`Font` extensions:** `.appBody`, `.appTitle`, `.appCaption`, `.appHeadline`, `.appSubheadline` — all use `.rounded` design
-- **`CardModifier`:** `ViewModifier` applying `UIColor.secondarySystemGroupedBackground`, continuous `cornerRadius(16)`, shadow. Exposed as `.cardStyle()` on `View`.
-- **`EmptyStateView`:** reusable struct with `symbol: String`, `message: String`, `subMessage: String?`. Used in `CalendarTabView` for empty day state.
+- **`Color` extensions:** `brandVoid` (#070B18), `brandPrimary` (#1B1F3B), `brandAccent` (#FF6B35), `brandWarm` (#FFB347), `brandSurface` (#F7F3EE), `brandSuccess` (#2ECC71)
+- **`Font` extensions — rounded (functional UI):** `.appBody`, `.appTitle`, `.appCaption`, `.appHeadline`, `.appSubheadline`, `.appDisplay` — all use `.rounded` design
+- **`Font` extensions — serif (editorial moments):** `.appDisplaySerif` (size 34, black), `.appTitleSerif` (.title2, bold), `.appHeadlineSerif` (.headline, bold) — all use `.serif` design. **Critical parameter order:** `Font.system(.textStyle, design: .serif, weight: .bold)` — `design` must precede `weight` in the TextStyle overload.
+- **`CardModifier`:** `ViewModifier` applying `secondarySystemGroupedBackground` in dark mode / `brandSurface` in light mode, continuous `cornerRadius(16)`, shadow. Exposed as `.cardStyle()` on `View`.
+- **`EmptyStateView`:** reusable struct with `symbol: String`, `message: String`, `subMessage: String?`. Circle bg + brandAccent icon + brandPrimary title.
+- **Background pattern for dark views:** Use view-builder `.background { ZStack { Color.brandVoid; Color.brandSurface.opacity(0.03) }.clipShape(RoundedRectangle(...)) }` — **NOT** `.background(ZStack{...}, in:)` because `ZStack` is not a `ShapeStyle`.
 - **Note:** `MealCategory.color` and `MealCategory.icon` are defined in `Models/MealCategory.swift` — do NOT redefine them in StyleGuide.swift.
 
 ## SettingsView architecture
@@ -239,9 +251,9 @@ Compact tile design — 4–5 cards visible on screen simultaneously without scr
 - **SampleDataService**: `@MainActor final class`. Two public methods: `seedIfNeeded(context:)` — no-op if any `FoodEntry` exists (used on first launch); `seed(context:)` — unconditional, always inserts a full batch (used by "Clear & Re-seed" in Settings). Seeds 120 days of data (~85% of days have 1–3 entries), all 6 categories, all 3 input types, 35+ realistic food items, every `rawInput` prefixed with `[SAMPLE]`. Uses deterministic LCG (`SeededRNG`) for reproducible output. Image entries have `mediaURL = nil`.
 
 ## InsightsView architecture
-Presented as **Tab 3** in the bottom tab bar. `AppShellView` owns `@Query allEntries` and passes it as `entries: [FoodEntry]`.
+Presented as **Tab 3** in the bottom tab bar. `AppShellView` owns `@Query allEntries` and passes it as `entries: [FoodEntry]`. Background: `Color.brandVoid` on the `NavigationStack` and `ScrollView`.
 
-- **Story headline card:** rendered first, above the period picker. Calls `WeeklySummaryService().generateSummary(from: entries)` on `.onAppear` and displays the `headline` + `subheadline` in a branded card (accentColor.opacity(0.08) background). Refreshes each time the tab becomes visible.
+- **Story headline card:** rendered first, above the period picker. Calls `WeeklySummaryService().generateSummary(from: entries)` on `.onAppear`. Card design: ALL CAPS `brandAccent` eyebrow label + `appTitleSerif` headline in `brandSurface` + amber subheadline. Uses view-builder `.background {}` with `ZStack` on `brandVoid`. Refreshes each time the tab becomes visible.
 - **Period picker:** segmented control (7D / 30D / 3M / 1Y / All) drives all time-sensitive charts via `@State selectedPeriod: AnalyticsPeriod`
 - **Cards rendered in order:** storyHeadlineCard → periodPicker → statsCard → recordsCard → topFoodsCard → dailyActivityCard → categoryCard → mealTimingCard → weekTrendCard → heatmapCard → foodSearchCard
 - **Charts (Swift Charts only — no third-party deps):**

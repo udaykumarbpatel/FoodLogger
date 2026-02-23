@@ -80,9 +80,11 @@ struct CalendarTabView: View {
                     .padding(.horizontal, 16)
                 }
                 .padding(.bottom, 12)
-                .background(Color(UIColor.systemGroupedBackground))
+                .background(Color.brandVoid)
 
-                Divider()
+                Rectangle()
+                    .fill(Color.brandAccent.opacity(0.25))
+                    .frame(height: 1)
 
                 // Day entries panel
                 if let date = selectedDate {
@@ -91,7 +93,7 @@ struct CalendarTabView: View {
                     noSelectionPrompt
                 }
             }
-            .background(Color(UIColor.systemGroupedBackground))
+            .background(Color.brandVoid)
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -109,38 +111,50 @@ struct CalendarTabView: View {
     // MARK: - Month Nav Header
 
     private var monthNavHeader: some View {
-        HStack {
-            Button {
-                if let prev = calendar.date(byAdding: .month, value: -1, to: displayedMonth) {
-                    withAnimation(.easeInOut(duration: 0.2)) { displayedMonth = prev }
-                }
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.title2.weight(.semibold))
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
+        HStack(alignment: .lastTextBaseline) {
+            // Month name in editorial serif
+            VStack(alignment: .leading, spacing: 0) {
+                Text(monthStart.formatted(.dateTime.month(.wide)))
+                    .font(.appDisplaySerif)
+                    .foregroundStyle(Color.brandSurface)
+                Text(monthStart.formatted(.dateTime.year()))
+                    .font(.appCaption)
+                    .foregroundStyle(Color.brandWarm.opacity(0.8))
+                    .kerning(0.5)
             }
 
             Spacer()
 
-            Text(monthStart.formatted(.dateTime.month(.wide).year()))
-                .font(.system(.title2, design: .rounded).bold())
-
-            Spacer()
-
-            Button {
-                if let next = calendar.date(byAdding: .month, value: 1, to: displayedMonth) {
-                    withAnimation(.easeInOut(duration: 0.2)) { displayedMonth = next }
+            HStack(spacing: 4) {
+                Button {
+                    if let prev = calendar.date(byAdding: .month, value: -1, to: displayedMonth) {
+                        withAnimation(.easeInOut(duration: 0.2)) { displayedMonth = prev }
+                    }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.brandSurface.opacity(0.7))
+                        .frame(width: 36, height: 36)
+                        .background(Color.brandSurface.opacity(0.07))
+                        .clipShape(Circle())
                 }
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.title2.weight(.semibold))
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
+
+                Button {
+                    if let next = calendar.date(byAdding: .month, value: 1, to: displayedMonth) {
+                        withAnimation(.easeInOut(duration: 0.2)) { displayedMonth = next }
+                    }
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.brandSurface.opacity(0.7))
+                        .frame(width: 36, height: 36)
+                        .background(Color.brandSurface.opacity(0.07))
+                        .clipShape(Circle())
+                }
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.top, 8)
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
     }
 
     // MARK: - Day of Week Row
@@ -150,8 +164,9 @@ struct CalendarTabView: View {
             ForEach(0..<7, id: \.self) { i in
                 let index = (calendar.firstWeekday - 1 + i) % 7
                 Text(calendar.veryShortWeekdaySymbols[index])
-                    .font(.system(.caption, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .kerning(0.5)
+                    .foregroundStyle(Color.brandWarm.opacity(0.6))
                     .frame(maxWidth: .infinity)
             }
         }
@@ -168,18 +183,21 @@ struct CalendarTabView: View {
 
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
-                .font(.system(.headline, design: .rounded))
-                .foregroundStyle(.secondary)
+                .font(.appHeadlineSerif)
+                .foregroundStyle(Color.brandSurface)
                 .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.top, 14)
                 .padding(.bottom, 8)
 
             if entries.isEmpty {
-                EmptyStateView(
-                    symbol: "fork.knife",
-                    message: "Nothing logged",
-                    subMessage: "No entries for this day"
-                )
+                VStack(spacing: 10) {
+                    Spacer()
+                    Text("Nothing logged.")
+                        .font(.appTitleSerif)
+                        .foregroundStyle(Color.brandSurface.opacity(0.5))
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
                 .padding(.top, 16)
             } else {
                 List {
@@ -192,6 +210,7 @@ struct CalendarTabView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .background(Color.brandVoid)
             }
         }
     }
@@ -199,14 +218,14 @@ struct CalendarTabView: View {
     // MARK: - No Selection Prompt
 
     private var noSelectionPrompt: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             Spacer()
-            Image(systemName: "hand.tap")
-                .font(.system(size: 40))
-                .foregroundStyle(.tertiary)
-            Text("Tap a day to see entries")
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(.secondary)
+            Text("Select a day.")
+                .font(.appTitleSerif)
+                .foregroundStyle(Color.brandSurface.opacity(0.35))
+            Text("Tap any date above to see its entries.")
+                .font(.appCaption)
+                .foregroundStyle(Color.brandWarm.opacity(0.4))
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -224,40 +243,39 @@ private struct CalendarTabDayCell: View {
     private let calendar = Calendar.current
 
     var body: some View {
-        Text("\(calendar.component(.day, from: date))")
-            .font(.system(.subheadline, design: .rounded).weight(isToday ? .bold : .regular))
-            .foregroundStyle(dayTextColor)
-            .frame(width: 38, height: 38)
-            .background(dayBackground)
-            .clipShape(Circle())
-            .frame(height: 52)
-    }
+        ZStack {
+            // Heatmap fill
+            Circle().fill(cellBackground)
 
-    @ViewBuilder
-    private var dayBackground: some View {
-        if isToday {
-            Circle().fill(Color.accentColor)
-        } else if isSelected {
-            Circle().fill(Color.accentColor.opacity(0.25))
-        } else {
-            // Heatmap: deeper color for more entries.
-            Circle().fill(heatmapFill)
+            // Today: cream ring outline
+            if isToday && !isSelected {
+                Circle()
+                    .strokeBorder(Color.brandSurface.opacity(0.7), lineWidth: 1.5)
+            }
+
+            Text("\(calendar.component(.day, from: date))")
+                .font(.system(size: 14, weight: isToday || isSelected ? .bold : .regular, design: .rounded))
+                .foregroundStyle(dayTextColor)
         }
+        .frame(width: 38, height: 38)
+        .frame(height: 52)
     }
 
-    private var heatmapFill: Color {
+    private var cellBackground: Color {
+        if isSelected { return Color.brandAccent }
         switch entryCount {
         case 0:    return Color.clear
-        case 1:    return Color.accentColor.opacity(0.25)
-        case 2:    return Color.accentColor.opacity(0.55)
-        default:   return Color.accentColor.opacity(0.85)
+        case 1:    return Color.brandAccent.opacity(0.22)
+        case 2:    return Color.brandAccent.opacity(0.50)
+        default:   return Color.brandAccent.opacity(0.80)
         }
     }
 
     private var dayTextColor: Color {
-        if isToday { return .white }
-        if isSelected { return .accentColor }
-        if entryCount >= 3 { return .white }
-        return .primary
+        if isSelected { return .white }
+        if isToday { return Color.brandSurface }
+        if entryCount >= 2 { return .white }
+        if entryCount == 1 { return Color.brandSurface.opacity(0.9) }
+        return Color.brandSurface.opacity(0.45)
     }
 }

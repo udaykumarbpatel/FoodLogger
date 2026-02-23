@@ -19,9 +19,9 @@ struct TodayTabView: View {
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 5..<12:  return "Good morning 👋"
-        case 12..<17: return "Good afternoon 👋"
-        default:      return "Good evening 👋"
+        case 5..<12:  return "Good morning"
+        case 12..<17: return "Good afternoon"
+        default:      return "Good evening"
         }
     }
 
@@ -29,10 +29,10 @@ struct TodayTabView: View {
         Date().formatted(.dateTime.weekday(.wide).month(.wide).day())
     }
 
-    /// Flame color shifts from amber → orange → red as the streak grows.
+    /// Flame color shifts amber → orange → red as streak grows.
     private var flameColor: Color {
         switch streakInfo.count {
-        case 0..<7:   return Color.brandWarm   // amber
+        case 0..<7:   return Color.brandWarm
         case 7..<14:  return .orange
         default:      return .red
         }
@@ -48,40 +48,49 @@ struct TodayTabView: View {
     }
 
     private var bannerView: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(greeting)
-                    .font(.appTitle)
-                    .foregroundStyle(.white)
-                Text(friendlyDate)
-                    .font(.appSubheadline)
-                    .foregroundStyle(.white.opacity(0.85))
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 4) {
-                if streakInfo.count > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "flame.fill")
-                            .foregroundStyle(flameColor)
-                        Text("\(streakInfo.count)")
-                            .fontWeight(.bold)
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(.white)
+        VStack(spacing: 0) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 3) {
+                    // Greeting in small-caps amber
+                    Text(greeting.uppercased())
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .kerning(1.2)
+                        .foregroundStyle(Color.brandWarm.opacity(0.85))
+
+                    // Date in editorial serif
+                    Text(friendlyDate)
+                        .font(.appTitleSerif)
+                        .foregroundStyle(Color.brandSurface)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
-                Text("\(todayEntryCount) \(todayEntryCount == 1 ? "entry" : "entries") today")
-                    .font(.appCaption)
-                    .foregroundStyle(.white.opacity(0.85))
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 5) {
+                    if streakInfo.count > 0 {
+                        HStack(spacing: 5) {
+                            Image(systemName: "flame.fill")
+                                .foregroundStyle(flameColor)
+                            Text("\(streakInfo.count)")
+                                .fontWeight(.black)
+                                .foregroundStyle(Color.brandSurface)
+                        }
+                        .font(.title3)
+                    }
+                    Text("\(todayEntryCount) \(todayEntryCount == 1 ? "entry" : "entries") today")
+                        .font(.appCaption)
+                        .foregroundStyle(Color.brandSurface.opacity(0.5))
+                }
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .background(Color.brandVoid)
+
+            // Ruled journal line at the bottom
+            Rectangle()
+                .fill(Color.brandAccent.opacity(0.35))
+                .frame(height: 1)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(
-            LinearGradient(
-                colors: [Color.accentColor, Color.accentColor.opacity(0.75)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
     }
 }

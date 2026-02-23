@@ -21,6 +21,7 @@ extension Color {
                   opacity: Double(a) / 255)
     }
 
+    static let brandVoid    = Color(hex: "#070B18")  // near-black — journal page bg
     static let brandPrimary = Color(hex: "#1B1F3B")  // deep navy
     static let brandAccent  = Color(hex: "#FF6B35")  // vivid orange
     static let brandWarm    = Color(hex: "#FFB347")  // amber
@@ -31,12 +32,18 @@ extension Color {
 // MARK: - Typography
 
 extension Font {
-    static let appBody        = Font.system(.body,       design: .rounded, weight: .medium)
-    static let appTitle       = Font.system(.title2,     design: .rounded, weight: .black)
-    static let appCaption     = Font.system(.caption,    design: .rounded, weight: .regular)
-    static let appHeadline    = Font.system(.headline,   design: .rounded, weight: .bold)
+    // Rounded — functional UI
+    static let appBody        = Font.system(.body,        design: .rounded, weight: .medium)
+    static let appTitle       = Font.system(.title2,      design: .rounded, weight: .black)
+    static let appCaption     = Font.system(.caption,     design: .rounded, weight: .regular)
+    static let appHeadline    = Font.system(.headline,    design: .rounded, weight: .bold)
     static let appSubheadline = Font.system(.subheadline, design: .rounded, weight: .medium)
     static let appDisplay     = Font.system(size: 34, weight: .black, design: .rounded)
+
+    // Serif — editorial moments (dates, hero text, section headers)
+    static let appDisplaySerif  = Font.system(size: 34,    weight: .black, design: .serif)
+    static let appTitleSerif    = Font.system(.title2,  design: .serif, weight: .bold)
+    static let appHeadlineSerif = Font.system(.headline, design: .serif, weight: .bold)
 }
 
 // MARK: - Card Style

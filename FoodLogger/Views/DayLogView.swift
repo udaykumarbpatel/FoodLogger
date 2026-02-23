@@ -157,6 +157,7 @@ private struct DayLogBody: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
+            Color.brandVoid.ignoresSafeArea()
             if entries.isEmpty {
                 emptyStateView
             } else {
@@ -204,7 +205,7 @@ private struct DayLogBody: View {
                     .id(entry.id)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             delete(entry)
@@ -240,6 +241,7 @@ private struct DayLogBody: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .background(Color.brandVoid)
             .safeAreaInset(edge: .bottom) {
                 Color.clear.frame(height: 80)
             }
@@ -258,17 +260,39 @@ private struct DayLogBody: View {
     // MARK: - Empty State
 
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 0) {
             Spacer()
-            Image(systemName: "fork.knife")
-                .font(.system(size: 52))
-                .foregroundStyle(.tertiary)
-            Text(isToday ? "Nothing logged yet" : "No entries for this day")
-                .font(.title3.weight(.medium))
-                .foregroundStyle(.secondary)
-            Text("Tap + to add an entry")
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
+
+            VStack(spacing: 20) {
+                Text(isToday ? "Nothing here yet." : "No entries this day.")
+                    .font(.appTitleSerif)
+                    .foregroundStyle(Color.brandSurface)
+                    .multilineTextAlignment(.center)
+
+                Text(isToday
+                     ? "Every great story starts with a first entry."
+                     : "Nothing was logged on this day.")
+                    .font(.appSubheadline)
+                    .foregroundStyle(Color.brandWarm.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+
+                if isToday {
+                    Button {
+                        showAddSheet = true
+                    } label: {
+                        Text("Add your first meal today")
+                            .font(.appBody)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 13)
+                            .background(Color.brandAccent)
+                            .clipShape(Capsule())
+                    }
+                    .padding(.top, 4)
+                }
+            }
+
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -283,10 +307,10 @@ private struct DayLogBody: View {
             Image(systemName: "plus")
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(Color.accentColor)
+                .frame(width: 58, height: 58)
+                .background(Color.brandAccent)
                 .clipShape(Circle())
-                .shadow(color: .black.opacity(0.2), radius: 6, x: 0, y: 3)
+                .shadow(color: Color.brandAccent.opacity(0.45), radius: 14, x: 0, y: 6)
         }
         .padding(20)
     }

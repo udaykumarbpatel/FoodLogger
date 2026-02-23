@@ -21,26 +21,40 @@ struct AppShellView: View {
 
     init() {
         #if canImport(UIKit)
-        let appearance = UITabBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(Color.brandPrimary)
+        // Tab bar — dark navy background, orange selected, dim-white unselected
+        let tabAppearance = UITabBarAppearance()
+        tabAppearance.configureWithOpaqueBackground()
+        tabAppearance.backgroundColor = UIColor(Color.brandPrimary)
 
         let orange = UIColor(Color.brandAccent)
-        appearance.stackedLayoutAppearance.selected.iconColor = orange
-        appearance.stackedLayoutAppearance.selected.titleTextAttributes = [
+        tabAppearance.stackedLayoutAppearance.selected.iconColor = orange
+        tabAppearance.stackedLayoutAppearance.selected.titleTextAttributes = [
             .foregroundColor: orange,
             .font: UIFont.systemFont(ofSize: 10, weight: .semibold)
         ]
 
         let dimWhite = UIColor.white.withAlphaComponent(0.4)
-        appearance.stackedLayoutAppearance.normal.iconColor = dimWhite
-        appearance.stackedLayoutAppearance.normal.titleTextAttributes = [
+        tabAppearance.stackedLayoutAppearance.normal.iconColor = dimWhite
+        tabAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [
             .foregroundColor: dimWhite,
             .font: UIFont.systemFont(ofSize: 10, weight: .regular)
         ]
 
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
+        UITabBar.appearance().standardAppearance = tabAppearance
+        UITabBar.appearance().scrollEdgeAppearance = tabAppearance
+
+        // Navigation bar — void background, cream large title, cream inline title
+        let navAppearance = UINavigationBarAppearance()
+        navAppearance.configureWithOpaqueBackground()
+        navAppearance.backgroundColor = UIColor(Color.brandVoid)
+        let creamColor = UIColor(Color.brandSurface)
+        navAppearance.titleTextAttributes = [.foregroundColor: creamColor]
+        navAppearance.largeTitleTextAttributes = [.foregroundColor: creamColor]
+
+        UINavigationBar.appearance().standardAppearance = navAppearance
+        UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
+        UINavigationBar.appearance().compactAppearance = navAppearance
+        UINavigationBar.appearance().tintColor = UIColor(Color.brandAccent)
         #endif
     }
 
@@ -71,6 +85,8 @@ struct AppShellView: View {
                         Label("Settings", systemImage: "gearshape.fill")
                     }
             }
+            .toolbarColorScheme(.dark, for: .tabBar)
+            .preferredColorScheme(.dark)
 
             // Milestone celebration overlay
             if showMilestoneOverlay, let milestone = activeMilestone {

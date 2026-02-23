@@ -151,8 +151,10 @@ struct InsightsView: View {
                         }
                         .padding(.bottom, 24)
                     }
+                    .background(Color.brandVoid)
                 }
             }
+            .background(Color.brandVoid)
             .navigationTitle("Insights")
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
@@ -166,28 +168,32 @@ struct InsightsView: View {
     @ViewBuilder
     private var storyHeadlineCard: some View {
         if let summary = weeklySummary, !entries.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                Label("This Week", systemImage: "sparkles")
-                    .font(.appCaption)
-                    .foregroundStyle(Color.accentColor)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("THIS WEEK".uppercased())
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .kerning(1.2)
+                    .foregroundStyle(Color.brandAccent)
 
                 Text(summary.headline)
-                    .font(.appHeadline)
-                    .foregroundStyle(.primary)
+                    .font(.appTitleSerif)
+                    .foregroundStyle(Color.brandSurface)
 
                 Text(summary.subheadline)
-                    .font(.appBody)
-                    .foregroundStyle(.secondary)
+                    .font(.appSubheadline)
+                    .foregroundStyle(Color.brandWarm.opacity(0.8))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .background(
-                Color.accentColor.opacity(0.08),
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
+            .padding(18)
+            .background {
+                ZStack {
+                    Color.brandVoid
+                    Color.brandAccent.opacity(0.06)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.accentColor.opacity(0.25), lineWidth: 1)
+                    .stroke(Color.brandAccent.opacity(0.22), lineWidth: 1)
             )
             .padding(.horizontal, 16)
         }
@@ -218,31 +224,45 @@ struct InsightsView: View {
 
     private var emptyStateView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "chart.bar.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.secondary)
-            Text("No insights yet")
-                .font(.title2)
-                .fontWeight(.semibold)
-            Text("Start logging meals to see your patterns")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            Spacer()
+            Text("No insights yet.")
+                .font(.appTitleSerif)
+                .foregroundStyle(Color.brandSurface.opacity(0.6))
+            Text("Start logging meals to see your patterns.")
+                .font(.appSubheadline)
+                .foregroundStyle(Color.brandWarm.opacity(0.6))
                 .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            Spacer()
         }
-        .padding(32)
+        .frame(maxWidth: .infinity)
+        .background(Color.brandVoid)
     }
 
     // MARK: - Card Container
 
     private func chartCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(title)
-                .font(.headline)
+            Text(title.uppercased())
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .kerning(1.0)
+                .foregroundStyle(Color.brandWarm.opacity(0.7))
                 .padding([.top, .horizontal])
+                .padding(.bottom, 4)
             content()
                 .padding([.bottom, .horizontal])
         }
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
+        .background {
+            ZStack {
+                Color.brandVoid
+                Color.brandSurface.opacity(0.03)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.brandSurface.opacity(0.07), lineWidth: 1)
+        )
         .padding(.horizontal, 16)
     }
 
