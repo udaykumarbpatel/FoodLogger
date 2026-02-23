@@ -73,6 +73,9 @@ struct SettingsView: View {
 
                 #if DEBUG
                 Section {
+                    Button("Export App Icon (1024×1024)") {
+                        exportAppIcon()
+                    }
                     Button("Clear Sample Data", role: .destructive) {
                         showClearOnlyConfirm = true
                     }
@@ -82,7 +85,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Developer")
                 } footer: {
-                    Text("Clear removes all [SAMPLE] entries. Clear & Re-seed also inserts a fresh batch.")
+                    Text("Export App Icon renders the 1024×1024 PNG for the asset catalog. Clear removes all [SAMPLE] entries. Clear & Re-seed also inserts a fresh batch.")
                 }
                 #endif
             }
@@ -172,6 +175,17 @@ struct SettingsView: View {
     // MARK: - Debug
 
     #if DEBUG
+    private func exportAppIcon() {
+        let renderer = ImageRenderer(content: AppIconView())
+        renderer.scale = 1.0
+        renderer.proposedSize = ProposedViewSize(width: 1024, height: 1024)
+        guard let uiImage = renderer.uiImage,
+              let pngData = uiImage.pngData() else { return }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("AppIcon-1024.png")
+        try? pngData.write(to: url)
+        exportItem = ExportItem(url: url)
+    }
+
     private func clearSampleData() {
         let descriptor = FetchDescriptor<FoodEntry>()
         let all = (try? modelContext.fetch(descriptor)) ?? []

@@ -1,95 +1,71 @@
 import SwiftUI
 
 // Local color constants — matches brandX values in StyleGuide.swift
-private let navyBackground = Color(red: 0.106, green: 0.122, blue: 0.231)   // #1B1F3B brandPrimary
-private let warmOffWhite   = Color(red: 0.969, green: 0.953, blue: 0.933)   // #F7F3EE brandSurface
-private let vividOrange    = Color(red: 1.000, green: 0.420, blue: 0.208)   // #FF6B35 brandAccent
-private let amber          = Color(red: 1.000, green: 0.702, blue: 0.278)   // #FFB347 brandWarm
+private let navyBackground = Color(red: 0.028, green: 0.043, blue: 0.094)  // ~#070B18 near-black navy
+private let warmOffWhite   = Color(red: 0.969, green: 0.953, blue: 0.933)  // #F7F3EE brandSurface
+private let vividOrange    = Color(red: 1.000, green: 0.420, blue: 0.208)  // #FF6B35 brandAccent
 
 @MainActor
 struct LaunchScreenView: View {
     let onComplete: () -> Void
 
-    @State private var bookScale: CGFloat = 0.3
-    @State private var bookOpacity: Double = 0
-    @State private var textOpacity: Double = 0
-    @State private var textOffset: CGFloat = 20
-    @State private var taglineOpacity: Double = 0
+    @State private var foodOpacity: Double = 0
+    @State private var foodOffset: CGFloat = 24
+    @State private var storyOpacity: Double = 0
+    @State private var storyOffset: CGFloat = 24
+    @State private var subtitleOpacity: Double = 0
 
     var body: some View {
         ZStack {
             navyBackground
                 .ignoresSafeArea()
 
-            VStack(spacing: 28) {
-                // Book + fork motif
-                ZStack {
-                    // Left page — rotated outward (counter-clockwise)
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(warmOffWhite)
-                        .frame(width: 80, height: 100)
-                        .rotationEffect(.degrees(-12))
-                        .offset(x: -28, y: 0)
-                        .opacity(bookOpacity)
+            VStack(spacing: 0) {
+                Spacer()
 
-                    // Right page — rotated outward (clockwise)
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(warmOffWhite)
-                        .frame(width: 80, height: 100)
-                        .rotationEffect(.degrees(12))
-                        .offset(x: 28, y: 0)
-                        .opacity(bookOpacity)
+                // Typographic logo
+                VStack(spacing: 4) {
+                    Text("YOUR FOOD.")
+                        .font(.system(size: 48, weight: .black, design: .serif))
+                        .foregroundStyle(warmOffWhite)
+                        .opacity(foodOpacity)
+                        .offset(y: foodOffset)
 
-                    // Book spine — vertical center line
-                    Rectangle()
-                        .fill(warmOffWhite.opacity(0.85))
-                        .frame(width: 3, height: 108)
-                        .opacity(bookOpacity)
-
-                    // Fork and knife SF Symbol — centered on spine
-                    Image(systemName: "fork.knife")
-                        .font(.system(size: 44, weight: .medium))
+                    Text("YOUR STORY.")
+                        .font(.system(size: 48, weight: .black, design: .serif))
+                        .italic()
                         .foregroundStyle(vividOrange)
-                        .opacity(bookOpacity)
+                        .opacity(storyOpacity)
+                        .offset(y: storyOffset)
                 }
-                .scaleEffect(bookScale)
-                .shadow(color: .black.opacity(0.25), radius: 16, y: 8)
+                .multilineTextAlignment(.center)
 
-                // Text stack
-                VStack(spacing: 8) {
-                    Text("FoodLogger")
-                        .font(.system(size: 32, weight: .black, design: .rounded))
-                        .foregroundStyle(.white)
-                        .opacity(textOpacity)
-                        .offset(y: textOffset)
+                Spacer().frame(height: 32)
 
-                    Text("Your food. Your story.")
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
-                        .foregroundStyle(amber)
-                        .opacity(taglineOpacity)
-                }
+                Text("No calories. No cloud. No compromise.")
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(warmOffWhite.opacity(0.45))
+                    .opacity(subtitleOpacity)
+
+                Spacer()
             }
         }
         .onAppear {
-            // Book scale-up spring animation
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                bookScale = 1.0
+            // "YOUR FOOD." fades in and slides up
+            withAnimation(.easeOut(duration: 0.4).delay(0.15)) {
+                foodOpacity = 1.0
+                foodOffset = 0
             }
 
-            // Book opacity fade-in with 0.2s delay
-            withAnimation(.easeIn(duration: 0.5).delay(0.2)) {
-                bookOpacity = 1.0
+            // "YOUR STORY." follows 0.15s later
+            withAnimation(.easeOut(duration: 0.4).delay(0.30)) {
+                storyOpacity = 1.0
+                storyOffset = 0
             }
 
-            // App name fade in + upward slide after 0.3s
-            withAnimation(.easeOut(duration: 0.45).delay(0.3)) {
-                textOpacity = 1.0
-                textOffset = 0
-            }
-
-            // Tagline fade in after 0.5s
-            withAnimation(.easeOut(duration: 0.4).delay(0.5)) {
-                taglineOpacity = 1.0
+            // Subtitle fades in last
+            withAnimation(.easeOut(duration: 0.35).delay(0.55)) {
+                subtitleOpacity = 1.0
             }
 
             // Signal completion after 1.4s

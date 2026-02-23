@@ -23,7 +23,7 @@ A native iOS food diary app. Log what you ate — by typing, speaking, or photog
 - Analytics dashboard (Insights tab): weekly story headline, top foods, daily activity, category breakdown, meal timing, week-over-week comparison, monthly heatmap, food search, stats card, personal records card (longest streak / best day / unique foods)
 - Calendar tab shows entry-density heatmap — deeper orange for more entries on a day
 - Entry save celebration: spring haptic + contextual toast ("First entry today!" / "Meal #N today!") on the Today tab
-- Streak flame animates with a pulse and color-shifts amber → orange → red as the streak grows
+- Streak flame color-shifts amber → orange → red as the streak grows
 - Milestone confetti at 10 / 25 / 50 / 100 / 250 total entries (one-time, stored in UserDefaults)
 - "Streak at risk" notification at 8 pm when you have a streak but haven't logged yet
 - Weekly Recap: 6-page animated recap shown every Monday on launch and via Sunday 7 pm push notification
@@ -69,7 +69,10 @@ FoodLogger/
 │   ├── InsightsView.swift           # Analytics dashboard — story headline, stats, records, 8 Swift Charts cards + period picker
 │   ├── WeeklyRecapView.swift        # 6-page animated weekly recap; ConfettiView/ConfettiParticle now internal for reuse
 │   ├── StyleGuide.swift             # Font extensions, CardModifier, EmptyStateView
-│   └── SettingsView.swift           # Notifications, JSON export, Developer tools (DEBUG)
+│   ├── AppIconView.swift            # 1024×1024 SwiftUI icon canvas ("YOUR FOOD." / "YOUR STORY." typographic wordmark); export PNG via Settings → Developer → Export App Icon
+│   ├── LaunchScreenView.swift       # Animated launch screen — same typographic wordmark slides up on near-black navy; 1.4 s then calls onComplete
+│   ├── OnboardingView.swift         # 4-page first-launch onboarding; page 1 shows typographic logo
+│   └── SettingsView.swift           # Notifications, JSON export, Developer tools (DEBUG: export app icon + data seeding)
 └── Services/
     ├── SpeechService.swift          # On-device speech recognition & live transcript
     ├── VisionService.swift          # On-device image classification
@@ -128,6 +131,17 @@ xcodebuild test \
 ```
 
 179 tests across 9 suites covering the data model, description builder, Vision service, meal category detection, JSON export, analytics, sample data seeding, weekly summary, and notification scheduling.
+
+## App Icon
+
+`AppIconView.swift` is the source-of-truth design canvas (1024×1024 SwiftUI). The asset catalog slot exists but needs a PNG placed in it. **Workflow to update the icon:**
+
+1. Run the app in a **Debug** build on simulator or device
+2. Go to **Settings → Developer → Export App Icon**
+3. Share/save the `AppIcon-1024.png` to your Mac (via AirDrop, Files, etc.)
+4. In Xcode, open `FoodLogger/Assets.xcassets/AppIcon.appiconset`
+5. Drag the PNG into the **light** slot (and optionally dark/tinted slots)
+6. Rebuild and reinstall
 
 ## UserDefaults keys
 

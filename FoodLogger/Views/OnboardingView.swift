@@ -125,78 +125,57 @@ struct OnboardingView: View {
 
 @MainActor
 private struct OnboardingPage1: View {
-    @State private var floatOffset: CGFloat = 0
+    @State private var foodOpacity: Double = 0
+    @State private var foodOffset: CGFloat = 20
+    @State private var storyOpacity: Double = 0
+    @State private var storyOffset: CGFloat = 20
+    @State private var subtitleOpacity: Double = 0
 
     var body: some View {
         ZStack {
-            _brandPrimary
+            Color(red: 0.028, green: 0.043, blue: 0.094)
                 .ignoresSafeArea()
 
             VStack(spacing: 32) {
                 Spacer()
 
-                // Book+fork icon
-                ZStack {
-                    // Left page of book
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.white.opacity(0.9))
-                        .frame(width: 64, height: 80)
-                        .rotationEffect(.degrees(-12))
-                        .offset(x: -20, y: 0)
+                // Typographic logo
+                VStack(spacing: 4) {
+                    Text("YOUR FOOD.")
+                        .font(.system(size: 42, weight: .black, design: .serif))
+                        .foregroundStyle(_brandSurface)
+                        .opacity(foodOpacity)
+                        .offset(y: foodOffset)
 
-                    // Right page of book
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.white.opacity(0.9))
-                        .frame(width: 64, height: 80)
-                        .rotationEffect(.degrees(12))
-                        .offset(x: 20, y: 0)
-
-                    // Fork & knife overlay on spine
-                    Image(systemName: "fork.knife")
-                        .font(.system(size: 52, weight: .semibold))
+                    Text("YOUR STORY.")
+                        .font(.system(size: 42, weight: .black, design: .serif))
+                        .italic()
                         .foregroundStyle(_brandAccent)
+                        .opacity(storyOpacity)
+                        .offset(y: storyOffset)
                 }
-                .frame(width: 120, height: 100)
-                .overlay(alignment: .top) {
-                    // Animated ambient dots above the book
-                    Canvas { context, size in
-                        let positions: [(CGFloat, CGFloat, CGFloat)] = [
-                            (0.1, 0.15, 6), (0.3, 0.05, 4), (0.5, 0.20, 5),
-                            (0.7, 0.08, 7), (0.9, 0.18, 4), (0.2, 0.30, 5),
-                            (0.6, 0.35, 6), (0.85, 0.28, 4)
-                        ]
-                        for (relX, relY, diameter) in positions {
-                            let x = relX * size.width
-                            let y = relY * size.height + floatOffset * 3
-                            let rect = CGRect(
-                                x: x - diameter / 2,
-                                y: y - diameter / 2,
-                                width: diameter,
-                                height: diameter
-                            )
-                            context.fill(Path(ellipseIn: rect), with: .color(_brandWarm.opacity(0.7)))
-                        }
-                    }
-                    .frame(width: 160, height: 60)
-                    .offset(y: -60)
-                    .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: floatOffset)
-                }
+                .multilineTextAlignment(.center)
                 .onAppear {
-                    floatOffset = 1.0
+                    withAnimation(.easeOut(duration: 0.4).delay(0.1)) {
+                        foodOpacity = 1.0
+                        foodOffset = 0
+                    }
+                    withAnimation(.easeOut(duration: 0.4).delay(0.25)) {
+                        storyOpacity = 1.0
+                        storyOffset = 0
+                    }
+                    withAnimation(.easeOut(duration: 0.35).delay(0.5)) {
+                        subtitleOpacity = 1.0
+                    }
                 }
-
-                // Headline
-                Text("Welcome to FoodLogger")
-                    .font(.system(size: 28, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
 
                 // Subtitle
-                Text("Your private food diary. No calories. No judgment.")
+                Text("No calories. No cloud. No compromise.")
                     .font(.system(size: 15, weight: .medium, design: .rounded))
                     .foregroundStyle(_brandWarm)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
+                    .opacity(subtitleOpacity)
 
                 Spacer()
                 Spacer()

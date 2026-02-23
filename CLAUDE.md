@@ -28,7 +28,7 @@ Visual identity: bold, energetic, deep colors. Journal meets food.
 - `.appBody` — `.body`, `.medium`
 - `.appCaption` — `.caption`, `.regular`
 
-**Graphic motif:** open journal book with a fork as the spine — two rounded-rect pages rotated outward + `fork.knife` SF Symbol on spine in `brandAccent`. Used in `LaunchScreenView`, `OnboardingView` page 1, and `AppIconView`.
+**Graphic motif:** typographic wordmark — "YOUR FOOD." in cream/off-white bold serif (`.system(.serif, weight: .black)`), "YOUR STORY." in vivid orange bold italic serif. Background is near-black navy (`#070B18` ≈ `Color(red:0.028, green:0.043, blue:0.094)`), darker than `brandPrimary`. Used in `AppIconView` (1024×1024 canvas), `LaunchScreenView` (animated slide-up), and `OnboardingView` page 1.
 
 **Tab bar:** deep navy background, vivid orange selected, 40%-white unselected. Configured via `UITabBar.appearance()` in `AppShellView.init()`.
 
@@ -87,8 +87,8 @@ FoodLogger/                     ← git root & Xcode project root
     Models/MealCategory.swift     ← enum MealCategory (breakfast/lunch/snack/dinner/dessert/beverage); has .color and .icon
     App/FoodLoggerApp.swift       ← @main; AppDelegate; quick actions; Notification.Name extensions; AppRootView with launch sequence: LaunchScreenView (1.4s) → AppShellView + OnboardingView fullScreenCover (first launch only) + Monday recap trigger
     Views/OnboardingView.swift    ← 4-page fullScreenCover onboarding (Welcome/LogAnything/Patterns/Private); custom capsule page indicator; skip button; UserDefaults key "onboardingComplete"; shown once on first launch
-    Views/LaunchScreenView.swift  ← animated launch screen: book+fork motif spring-scales in, app name slides up, tagline fades; calls onComplete after 1.4s; shown every launch
-    Views/AppIconView.swift       ← SwiftUI reference view of the app icon design (1024×1024 Canvas composition; navy bg + book pages + fork spine + amber dots); use for preview/export
+    Views/LaunchScreenView.swift  ← animated launch screen: typographic wordmark ("YOUR FOOD." cream serif slides up, "YOUR STORY." orange italic serif follows, subtitle fades last); near-black navy background; calls onComplete after 1.4s; shown every launch
+    Views/AppIconView.swift       ← SwiftUI reference view of the app icon design (1024×1024 canvas; near-black navy bg + "YOUR FOOD." cream serif + "YOUR STORY." orange italic serif); NO .clipShape — iOS applies its own mask so the PNG must be a full square; export via Settings → Developer → Export App Icon
     Views/AppShellView.swift      ← ROOT: ZStack(TabView + MilestoneOverlayView); 4 tabs (Today/Calendar/Insights/Settings); owns @Query allEntries + NotificationService; configures UITabBar.appearance; listens for .openWeeklyRecap; tracks milestones (UserDefaults key "triggeredMilestones") + schedules streak-risk notification on entry count change
     Views/WeeklyRecapView.swift   ← 6-page fullScreenCover recap (Hero/Stats/TopFood/Categories/Consistency/Share); Canvas confetti on perfect week; ImageRenderer share card; ConfettiView + ConfettiParticle are now internal (not private) so AppShellView can reuse them
     Views/TodayTabView.swift      ← Tab 1: NavigationStack wrapping DayLogView + gradient banner (greeting, streak, today count); flame icon shifts color amber→orange→red based on streak count (brandWarm <7, orange 7–13, red 14+)
@@ -219,9 +219,10 @@ Compact tile design — 4–5 cards visible on screen simultaneously without scr
 - **Note:** `MealCategory.color` and `MealCategory.icon` are defined in `Models/MealCategory.swift` — do NOT redefine them in StyleGuide.swift.
 
 ## SettingsView architecture
-- Three sections: **Notifications** (daily reminder toggle + time picker), **Data** (Export Data button), and **Developer** (`#if DEBUG` only — two destructive buttons with separate confirmation alerts)
+- Three sections: **Notifications** (daily reminder toggle + time picker), **Data** (Export Data button), and **Developer** (`#if DEBUG` only — Export App Icon + two destructive data buttons with confirmation alerts)
 - **Export flow:** fetches all `FoodEntry` records via `modelContext`, calls `ExportService.jsonData(from:)` + `ExportService.filename()`, writes to a temp file, then presents a `ShareSheet` (thin `UIActivityViewController` wrapper) via `.sheet(item: $exportItem)`. If no entries exist, shows a "Nothing to Export" alert instead.
 - **Clear Sample Data (DEBUG):** fetches all entries, deletes those with `rawInput.hasPrefix("[SAMPLE]")`, saves. No re-seeding.
+- **Export App Icon (DEBUG):** uses `ImageRenderer` to render `AppIconView()` at 1024×1024 (scale 1.0), encodes as PNG, writes to the temp directory, and presents it via the shared `ShareSheet`. The user saves the PNG and drags it into `Assets.xcassets/AppIcon.appiconset` in Xcode.
 - **Clear & Re-seed (DEBUG):** calls `clearSampleData()` then `SampleDataService().seed(context:)` (unconditional — not `seedIfNeeded`) to guarantee re-seeding even when real entries coexist. Each action requires its own confirmation alert before proceeding.
 - `ExportItem`: private `Identifiable` struct wrapping the temp `URL`, used as the `.sheet(item:)` binding.
 - `ShareSheet`: `UIViewControllerRepresentable` defined in `SettingsView.swift`; reusable if needed elsewhere.
