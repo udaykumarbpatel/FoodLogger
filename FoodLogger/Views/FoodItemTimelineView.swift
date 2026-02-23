@@ -13,7 +13,6 @@ struct FoodItemTimelineView: View {
     let term: String
     let entries: [FoodEntry]
 
-    @Environment(\.dismiss) private var dismiss
     @State private var selectedPeriod: AnalyticsPeriod = .month
 
     private let service = InsightsService()
@@ -52,36 +51,33 @@ struct FoodItemTimelineView: View {
         service.itemMealTiming(for: term, from: entries, period: selectedPeriod)
     }
 
+    private var moodData: [MoodCount] {
+        service.itemMoodDistribution(for: term, from: entries, period: selectedPeriod)
+    }
+
     // MARK: - Body
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    headerStats
-                        .padding(.top, 8)
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                headerStats
+                    .padding(.top, 8)
 
-                    periodPicker
-                        .padding(.horizontal, 16)
+                periodPicker
+                    .padding(.horizontal, 16)
 
-                    occurrenceCard
-                    weekdayCard
-                    timingCard
-                }
-                .padding(.bottom, 32)
+                occurrenceCard
+                weekdayCard
+                timingCard
+                moodCard
             }
-            .background(Color.brandVoid)
-            .navigationTitle(term.capitalized)
-            .navigationBarTitleDisplayMode(.large)
-            .toolbarBackground(Color.brandVoid, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .tint(Color.brandAccent)
-                }
-            }
+            .padding(.bottom, 32)
         }
+        .background(Color.brandVoid)
+        .navigationTitle(term.capitalized)
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(Color.brandVoid, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
     // MARK: - Header Stats
@@ -269,6 +265,47 @@ struct FoodItemTimelineView: View {
         case 12: return "12p"
         case 18: return "6p"
         default: return "\(hour)"
+        }
+    }
+
+    // MARK: - Mood Chart
+
+    private var moodCard: some View {
+        chartCard(title: "How It Made You Feel") {
+            if moodData.isEmpty {
+                emptyChartState(
+                    icon: "face.smiling",
+                    message: "No mood data for this period\nTap a mood when logging to track how food makes you feel"
+                )
+            } else {
+                Chart(moodData) { item in
+                    BarMark(
+                        x: .value("Times", item.count),
+                        y: .value("Mood", "\(item.mood.emoji)  \(item.mood.label)")
+                    )
+                    .foregroundStyle(item.mood.color.opacity(0.85))
+                    .cornerRadius(5)
+                    .annotation(position: .trailing, alignment: .leading, spacing: 6) {
+                        Text("\(item.count)  ·  \(Int(item.percentage.rounded()))%")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(Color.brandSurface.opacity(0.45))
+                    }
+                }
+                .chartXAxis(.hidden)
+                .chartYAxis {
+                    AxisMarks { value in
+                        AxisValueLabel {
+                            if let label = value.as(String.self) {
+                                Text(label)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(Color.brandSurface.opacity(0.80))
+                            }
+                        }
+                    }
+                }
+                .frame(height: CGFloat(moodData.count) * 42 + 8)
+                .padding(.top, 8)
+            }
         }
     }
 

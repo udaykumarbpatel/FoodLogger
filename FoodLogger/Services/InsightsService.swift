@@ -345,6 +345,24 @@ struct WeekdayCount: Identifiable {
         return (0..<24).map { HourCount(hour: $0, count: freq[$0] ?? 0) }
     }
 
+    /// Mood distribution for entries matching `term` within the given period.
+    func itemMoodDistribution(for term: String, from entries: [FoodEntry], period: AnalyticsPeriod) -> [MoodCount] {
+        let matched = filterByPeriod(entriesMatching(term: term, from: entries), period: period)
+        let withMood = matched.filter { $0.mood != nil }
+        let total = withMood.count
+        var freq: [MoodTag: Int] = [:]
+        for entry in withMood {
+            if let mood = entry.mood { freq[mood, default: 0] += 1 }
+        }
+        return MoodTag.allCases.compactMap { mood in
+            let count = freq[mood] ?? 0
+            guard count > 0 else { return nil }
+            let pct = total > 0 ? Double(count) / Double(total) * 100.0 : 0.0
+            return MoodCount(mood: mood, count: count, percentage: pct)
+        }
+        .sorted { $0.count > $1.count }
+    }
+
     /// Day-of-week pattern for `term`, ordered Monday–Sunday, within the given period.
     func itemWeekdayPattern(for term: String, from entries: [FoodEntry], period: AnalyticsPeriod) -> [WeekdayCount] {
         let matched = filterByPeriod(entriesMatching(term: term, from: entries), period: period)

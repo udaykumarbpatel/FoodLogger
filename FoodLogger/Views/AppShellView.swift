@@ -67,12 +67,17 @@ struct AppShellView: View {
             TabView {
                 TodayTabView()
                     .tabItem {
-                        Label("Today", systemImage: "fork.knife")
+                        Label("Journal", systemImage: "fork.knife")
                     }
 
                 CalendarTabView()
                     .tabItem {
                         Label("Calendar", systemImage: "calendar")
+                    }
+
+                FoodsTabView()
+                    .tabItem {
+                        Label("Foods", systemImage: "chart.xyaxis.line")
                     }
 
                 InsightsView(entries: allEntries)

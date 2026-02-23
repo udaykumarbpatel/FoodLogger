@@ -17,9 +17,7 @@ struct InsightsView: View {
 
     @State private var selectedPeriod: AnalyticsPeriod = .month
     @State private var heatmapMonth: Date = Date()
-    @State private var searchText: String = ""
     @State private var weeklySummary: WeeklySummary?
-    @State private var selectedFoodItem: FoodItemFrequency?
 
     private let service = InsightsService()
     private let summaryService = WeeklySummaryService()
@@ -48,17 +46,6 @@ struct InsightsView: View {
 
     private var heatmapData: [DayActivity] {
         service.monthlyHeatmap(from: entries, month: heatmapMonth)
-    }
-
-    private var allTimeTopFoods: [FoodItemFrequency] {
-        service.topItems(from: entries, period: .allTime, limit: 100)
-    }
-
-    private var filteredSearchFoods: [FoodItemFrequency] {
-        guard !searchText.isEmpty else { return [] }
-        return allTimeTopFoods.filter {
-            $0.item.localizedCaseInsensitiveContains(searchText)
-        }
     }
 
     private var moodData: [MoodCount] {
@@ -126,7 +113,9 @@ struct InsightsView: View {
     }
 
     /// Count of distinct non-stopword food tokens seen in all entries.
-    private var totalUniqueFoods: Int { allTimeTopFoods.count }
+    private var totalUniqueFoods: Int {
+        service.topItems(from: entries, period: .allTime, limit: 200).count
+    }
 
     // MARK: - Body
 
@@ -153,7 +142,6 @@ struct InsightsView: View {
                             mealTimingCard
                             weekTrendCard
                             heatmapCard
-                            foodSearchCard
                         }
                         .padding(.bottom, 24)
                     }
@@ -167,9 +155,6 @@ struct InsightsView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
             .onAppear {
                 weeklySummary = summaryService.generateSummary(from: entries)
-            }
-            .sheet(item: $selectedFoodItem) { food in
-                FoodItemTimelineView(term: food.item, entries: entries)
             }
         }
     }
@@ -696,75 +681,7 @@ struct InsightsView: View {
         Calendar.current.isDate(date, equalTo: Date(), toGranularity: .month)
     }
 
-    // MARK: - Chart G: Food Search
-
-    private var foodSearchCard: some View {
-        chartCard(title: "Food Search") {
-            VStack(spacing: 0) {
-                // Search field
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField("Search foods…", text: $searchText)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                    if !searchText.isEmpty {
-                        Button {
-                            searchText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .padding(10)
-                .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
-                .padding(.top, 8)
-
-                if searchText.isEmpty {
-                    emptyChartState(icon: "magnifyingglass", message: "Search for a food item")
-                } else if filteredSearchFoods.isEmpty {
-                    emptyChartState(icon: "questionmark.circle", message: "No results for \"\(searchText)\"")
-                } else {
-                    LazyVStack(spacing: 0) {
-                        ForEach(filteredSearchFoods.prefix(20)) { food in
-                            Button {
-                                selectedFoodItem = food
-                            } label: {
-                                HStack {
-                                    Text(food.item.capitalized)
-                                        .font(.subheadline)
-                                        .foregroundStyle(Color.brandSurface)
-                                    Spacer()
-                                    Text("\(food.count)")
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 3)
-                                        .background(Color.accentColor, in: Capsule())
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption2)
-                                        .foregroundStyle(Color.brandSurface.opacity(0.3))
-                                }
-                                .padding(.vertical, 10)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-
-                            if food.id != filteredSearchFoods.prefix(20).last?.id {
-                                Divider()
-                            }
-                        }
-                    }
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
-                }
-            }
-        }
-    }
-
-    // MARK: - Chart H: Stats Card
+    // MARK: - Stats Card
 
     private var statsCard: some View {
         chartCard(title: "Your Stats") {

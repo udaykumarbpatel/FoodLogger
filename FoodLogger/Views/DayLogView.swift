@@ -4,23 +4,17 @@ import SwiftData
 // MARK: - Shell
 
 struct DayLogView: View {
-    @Query private var allEntries: [FoodEntry]
     @State private var highlightedEntryID: UUID?
 
-    // Page-based date navigation
-    private static let referenceDate: Date = Calendar.current.startOfDay(for: Date())
-    private static let todayIndex: Int = 365          // index within the 366-page range
-    private static let totalDays: Int = 366           // 365 days back + today
-    @State private var selectedIndex: Int = DayLogView.todayIndex
+    // Page-based date navigation — statics exposed so TodayTabView can reference them
+    static let referenceDate: Date = Calendar.current.startOfDay(for: Date())
+    static let todayIndex: Int = 365          // index within the 366-page range
+    private static let totalDays: Int = 366  // 365 days back + today
+
+    /// Owned by TodayTabView so the banner reacts synchronously to page swipes.
+    @Binding var selectedIndex: Int
 
     // Sheets
-    @State private var showSearch = false
-
-    private let streakService = StreakService()
-
-    private var streakInfo: StreakService.StreakInfo {
-        streakService.compute(from: allEntries)
-    }
 
     private var displayedDate: Date { date(at: selectedIndex) }
 
@@ -50,19 +44,11 @@ struct DayLogView: View {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .navigationTitle(formattedTitle)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.brandVoid, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar { toolbarContent }
-        .sheet(isPresented: $showSearch) {
-            SearchView { date, entryID in
-                withAnimation(.none) {
-                    selectedIndex = index(for: Calendar.current.startOfDay(for: date))
-                }
-                highlightedEntryID = entryID
-            }
-        }
         .onReceive(NotificationCenter.default.publisher(for: .quickAction)) { notification in
             guard let action = notification.object as? String else { return }
             switch action {
@@ -80,52 +66,27 @@ struct DayLogView: View {
         }
     }
 
-    private var formattedTitle: String {
-        isToday ? "Today" : displayedDate.formatted(.dateTime.weekday(.abbreviated).month(.wide).day())
-    }
-
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
-            streakBadge
-        }
-
         ToolbarItemGroup(placement: .navigationBarTrailing) {
-            Button { showSearch = true } label: {
-                Image(systemName: "magnifyingglass")
-            }
-
             if isToday {
                 todayPill
             } else {
-                Button("Today") {
+                Button {
                     withAnimation(.none) { selectedIndex = DayLogView.todayIndex }
+                } label: {
+                    todayPill
                 }
-                .tint(.accentColor)
+                .buttonStyle(.plain)
             }
-        }
-    }
-
-    @ViewBuilder
-    private var streakBadge: some View {
-        if streakInfo.count > 0 {
-            HStack(spacing: 4) {
-                Image(systemName: "flame.fill")
-                    .foregroundStyle(.orange)
-                Text("\(streakInfo.count)")
-                    .fontWeight(.semibold)
-            }
-            .font(.subheadline)
         }
     }
 
     private var todayPill: some View {
-        Text("Today")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Color.accentColor, in: Capsule())
+        Text("TODAY")
+            .font(.system(size: 10, weight: .bold, design: .rounded))
+            .kerning(1.2)
+            .foregroundStyle(Color.brandAccent)
     }
 }
 
