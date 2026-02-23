@@ -4,1463 +4,1206 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="FoodLogger — a native iOS food diary. Log meals by text, voice, or photo. No calories. No cloud. 100% on-device." />
-  <title>FoodLogger — Your food diary. No calories. No fluff. No cloud.</title>
-  <style>
-    /* ─── Reset & base ─────────────────────────────────────────────────── */
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+  <title>FoodLogger — Your food. Your story.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 
-    html {
-      scroll-behavior: smooth;
-      font-size: 16px;
-    }
+  <style>
+    /* ─── Reset ──────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; font-size: 16px; }
 
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #F7F3EE;
-      color: #1B1F3B;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg-void);
+      color: var(--text-primary);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
     }
 
-    /* ─── Design tokens ────────────────────────────────────────────────── */
+    /* ─── Design tokens ──────────────────────────────────────────────────── */
     :root {
-      --navy:   #1B1F3B;
-      --orange: #FF6B35;
-      --orange-dark: #E55A25;
-      --amber:  #FFB347;
-      --cream:  #F7F3EE;
-      --green:  #2ECC71;
-      --white:  #FFFFFF;
-      --white-80: rgba(255,255,255,0.80);
-      --white-50: rgba(255,255,255,0.50);
-      --white-12: rgba(255,255,255,0.12);
-      --navy-08: rgba(27,31,59,0.08);
-      --navy-16: rgba(27,31,59,0.16);
-
-      --radius-sm: 8px;
-      --radius-md: 16px;
-      --radius-lg: 24px;
-      --radius-full: 9999px;
-
-      --space-xs:  8px;
-      --space-sm:  16px;
-      --space-md:  32px;
-      --space-lg:  64px;
-      --space-xl:  96px;
-
-      --max-w: 1120px;
+      --bg-void:       #070B18;
+      --bg-navy:       #1B1F3B;
+      --bg-cream:      #F7F3EE;
+      --accent-orange: #FF6B35;
+      --accent-amber:  #FFB347;
+      --accent-green:  #2ECC71;
+      --text-primary:  #F7F3EE;
+      --text-muted:    rgba(247,243,238,0.5);
+      --text-dark:     #1B1F3B;
     }
 
-    /* ─── Utility ──────────────────────────────────────────────────────── */
-    .container {
-      width: 100%;
-      max-width: var(--max-w);
-      margin: 0 auto;
-      padding: 0 var(--space-sm);
-    }
-
-    .sr-only {
+    /* ─── Noise texture filter ───────────────────────────────────────────── */
+    .noise-overlay {
+      pointer-events: none;
       position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0,0,0,0);
-      white-space: nowrap;
+      inset: 0;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 256px 256px;
+      z-index: 0;
     }
 
-    /* ─── Typography scale ─────────────────────────────────────────────── */
-    .t-display {
-      font-size: clamp(2.2rem, 5vw, 3.5rem);
-      font-weight: 900;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
-    }
-
-    .t-title {
-      font-size: clamp(1.5rem, 3vw, 2.25rem);
-      font-weight: 900;
-      letter-spacing: -0.015em;
-      line-height: 1.2;
-    }
-
-    .t-headline {
-      font-size: 1.125rem;
-      font-weight: 700;
-      line-height: 1.3;
-    }
-
-    .t-body {
-      font-size: 1rem;
+    /* ─── Section labels ─────────────────────────────────────────────────── */
+    .section-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
       font-weight: 500;
-      line-height: 1.65;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 2rem;
     }
+    .section-label--orange { color: var(--accent-orange); }
+    .section-label--amber  { color: var(--accent-amber); }
 
-    .t-caption {
-      font-size: 0.8125rem;
-      font-weight: 400;
-      line-height: 1.5;
-    }
-
-    /* ─── CTA Button ───────────────────────────────────────────────────── */
+    /* ─── CTA button ─────────────────────────────────────────────────────── */
     .btn-cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--orange);
-      color: var(--white);
-      font-family: inherit;
-      font-size: 1.0625rem;
-      font-weight: 700;
+      display: inline-block;
+      background: var(--accent-orange);
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 16px 36px;
+      border-radius: 50px;
       text-decoration: none;
       border: none;
-      border-radius: var(--radius-full);
-      padding: 16px 36px;
       cursor: pointer;
-      transition: background 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
-      box-shadow: 0 4px 20px rgba(255,107,53,0.40);
+      transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
       letter-spacing: 0.01em;
     }
-
     .btn-cta:hover {
-      background: var(--orange-dark);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(255,107,53,0.50);
+      transform: scale(1.03);
+      filter: brightness(1.1);
+      box-shadow: 0 8px 32px rgba(255,107,53,0.38);
     }
 
-    .btn-cta:active {
+    /* ─── Scroll reveal ──────────────────────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+    .reveal.visible {
+      opacity: 1;
       transform: translateY(0);
     }
+    .reveal:nth-child(1) { transition-delay: 0ms; }
+    .reveal:nth-child(2) { transition-delay: 80ms; }
+    .reveal:nth-child(3) { transition-delay: 160ms; }
+    .reveal:nth-child(4) { transition-delay: 240ms; }
+    .reveal:nth-child(5) { transition-delay: 320ms; }
+    .reveal:nth-child(6) { transition-delay: 400ms; }
+    .reveal:nth-child(7) { transition-delay: 480ms; }
+    .reveal:nth-child(8) { transition-delay: 560ms; }
 
-    /* App Store badge shape inside button */
-    .btn-cta .store-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      background: rgba(255,255,255,0.22);
-      border-radius: 6px;
-      font-size: 14px;
-      line-height: 1;
-    }
-
-    /* ─────────────────────────────────────────────────────────────────────
+    /* ═══════════════════════════════════════════════════════════════════════
        SECTION 1 — HERO
-    ───────────────────────────────────────────────────────────────────── */
+    ═══════════════════════════════════════════════════════════════════════ */
     #hero {
-      background: var(--navy);
-      color: var(--white);
-      padding: var(--space-xl) 0;
-      overflow: hidden;
       position: relative;
-    }
-
-    /* Subtle radial glow behind content */
-    #hero::before {
-      content: "";
-      position: absolute;
-      top: -120px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 800px;
-      height: 600px;
-      background: radial-gradient(ellipse at center, rgba(255,107,53,0.12) 0%, transparent 70%);
-      pointer-events: none;
+      min-height: 100svh;
+      background: var(--bg-void);
+      display: flex;
+      align-items: center;
+      overflow: hidden;
     }
 
     .hero-inner {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: var(--space-lg);
-      align-items: center;
       position: relative;
-      z-index: 1;
+      z-index: 2;
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 6rem 2rem 4rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
     }
 
-    @media (min-width: 768px) {
-      .hero-inner {
-        grid-template-columns: 1fr 1fr;
-        gap: var(--space-md);
-      }
-    }
-
-    .hero-copy {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-sm);
-    }
+    /* Hero text */
+    .hero-text { display: flex; flex-direction: column; gap: 1.5rem; }
 
     .hero-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--white-12);
-      border: 1px solid rgba(255,179,71,0.30);
-      border-radius: var(--radius-full);
-      padding: 5px 14px;
-      font-size: 0.8125rem;
-      font-weight: 600;
-      color: var(--amber);
-      letter-spacing: 0.04em;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      width: fit-content;
+      color: var(--accent-amber);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
-
-    .hero-eyebrow .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--amber);
-    }
+    .hero-eyebrow svg { width: 14px; height: 14px; fill: var(--accent-amber); }
 
     .hero-headline {
-      color: var(--white);
-    }
-
-    .hero-headline .accent {
-      color: var(--orange);
-    }
-
-    .hero-subheadline {
-      color: var(--white-80);
-      font-size: 1.125rem;
-      font-weight: 400;
-      max-width: 500px;
-      line-height: 1.65;
-    }
-
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: var(--space-sm);
-      margin-top: 8px;
-    }
-
-    .hero-trust {
-      font-size: 0.8125rem;
-      color: var(--white-50);
-      font-weight: 500;
-    }
-
-    /* ─── iPhone mockup ────────────────────────────────────────────────── */
-    .phone-wrap {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-    }
-
-    @media (min-width: 768px) {
-      .phone-wrap {
-        justify-content: flex-end;
-      }
-    }
-
-    .phone {
-      position: relative;
-      width: 240px;
-      min-height: 480px;
-      background: #12162E;
-      border: 2.5px solid rgba(255,255,255,0.18);
-      border-radius: 40px;
-      padding: 20px 14px 24px;
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,0.06),
-        0 40px 80px rgba(0,0,0,0.50),
-        inset 0 1px 0 rgba(255,255,255,0.10);
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 0;
+      line-height: 0.9;
     }
 
-    /* Dynamic Island pill */
-    .phone::before {
-      content: "";
+    .hero-line1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(64px, 12vw, 130px);
+      font-weight: 900;
+      color: var(--text-primary);
+      line-height: 0.9;
+      opacity: 0;
+      transform: translateY(30px);
+      animation: heroSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0ms forwards;
+    }
+
+    .hero-line2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(64px, 12vw, 130px);
+      font-weight: 900;
+      font-style: italic;
+      color: var(--accent-orange);
+      line-height: 0.9;
+      opacity: 0;
+      transform: translateY(30px);
+      animation: heroSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 150ms forwards;
+    }
+
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px);
+      font-weight: 300;
+      color: var(--text-muted);
+      max-width: 440px;
+      opacity: 0;
+      animation: heroFadeIn 0.7s ease-out 300ms forwards;
+    }
+
+    .hero-cta-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      opacity: 0;
+      animation: heroFadeIn 0.7s ease-out 450ms forwards;
+    }
+
+    .hero-fine-print {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    @keyframes heroSlideUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes heroFadeIn {
+      to { opacity: 1; }
+    }
+
+    /* ─── Phone mockup ───────────────────────────────────────────────────── */
+    .hero-phone-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      opacity: 0;
+      animation: heroFadeIn 1s ease-out 600ms forwards;
+    }
+
+    .phone-glow {
       position: absolute;
-      top: 14px;
+      bottom: -40px;
       left: 50%;
       transform: translateX(-50%);
-      width: 80px;
-      height: 22px;
+      width: 280px;
+      height: 80px;
+      background: radial-gradient(ellipse, rgba(255,107,53,0.35) 0%, transparent 70%);
+      filter: blur(16px);
+      z-index: 0;
+    }
+
+    .phone-frame {
+      position: relative;
+      z-index: 1;
+      width: 280px;
+      height: 590px;
+      background: linear-gradient(160deg, #1a1a2e 0%, #16213e 100%);
+      border-radius: 44px;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.5),
+        0 40px 80px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+      overflow: hidden;
+      padding: 14px 14px 18px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-island {
+      width: 100px;
+      height: 30px;
       background: #000;
-      border-radius: 12px;
-      z-index: 2;
+      border-radius: 20px;
+      margin: 0 auto 14px;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
     }
 
-    /* Side button */
-    .phone::after {
-      content: "";
-      position: absolute;
-      top: 90px;
-      right: -4px;
-      width: 3px;
-      height: 36px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 2px;
-    }
-
-    /* Volume buttons */
-    .phone-vol {
-      position: absolute;
-      left: -3px;
-      top: 80px;
+    .phone-screen {
+      flex: 1;
+      background: #0d1117;
+      border-radius: 30px;
+      overflow: hidden;
+      padding: 14px 10px;
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
 
-    .phone-vol span {
-      display: block;
-      width: 3px;
-      height: 24px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 2px;
+    .phone-date-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(247,243,238,0.35);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0 4px;
+      margin-bottom: 2px;
     }
 
-    .phone-status-bar {
-      height: 32px;
+    .phone-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 10px 10px 10px 14px;
+      position: relative;
+      overflow: hidden;
     }
+    .phone-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      border-radius: 4px 0 0 4px;
+    }
+    .phone-card--teal::before  { background: #5AC8D8; }
+    .phone-card--green::before { background: var(--accent-green); }
+    .phone-card--orange::before { background: var(--accent-orange); }
 
-    /* Screen label / nav bar inside phone */
-    .phone-nav {
+    .phone-card-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 4px;
       margin-bottom: 4px;
     }
 
-    .phone-nav-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--white);
-      letter-spacing: 0.01em;
-    }
-
-    .phone-nav-btn {
-      width: 22px;
-      height: 22px;
-      background: var(--orange);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 700;
-      color: white;
-      line-height: 1;
-    }
-
-    /* Streak badge */
-    .phone-streak {
-      background: linear-gradient(135deg, rgba(255,107,53,0.18), rgba(255,179,71,0.10));
-      border: 1px solid rgba(255,107,53,0.25);
-      border-radius: 12px;
-      padding: 8px 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .phone-streak-label {
-      font-size: 10px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.60);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    .phone-streak-count {
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--orange);
-    }
-
-    /* Entry cards inside phone */
-    .phone-card {
-      background: rgba(255,255,255,0.07);
-      border-radius: 12px;
-      padding: 10px 10px 10px 0;
-      display: flex;
-      align-items: flex-start;
-      gap: 0;
-      overflow: hidden;
-    }
-
-    .phone-card-bar {
-      width: 3px;
-      align-self: stretch;
-      border-radius: 2px;
-      margin-right: 9px;
-      flex-shrink: 0;
-    }
-
-    .phone-card-bar.lunch   { background: #FF6B35; }
-    .phone-card-bar.dinner  { background: #5B5FD9; }
-    .phone-card-bar.snack   { background: #FFB347; }
-
-    .phone-card-content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .phone-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 3px;
-    }
-
-    .phone-card-category {
+    .phone-pill {
+      font-family: 'DM Sans', sans-serif;
       font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      padding: 2px 6px;
-      border-radius: 6px;
-      background: rgba(255,107,53,0.20);
-      color: var(--orange);
-    }
-
-    .phone-card-category.dinner-badge {
-      background: rgba(91,95,217,0.22);
-      color: #8B8FF8;
-    }
-
-    .phone-card-category.snack-badge {
-      background: rgba(255,179,71,0.20);
-      color: var(--amber);
-    }
-
-    .phone-card-time {
-      font-size: 9px;
-      color: rgba(255,255,255,0.38);
       font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .phone-pill--teal  { background: rgba(90,200,216,0.2); color: #5AC8D8; }
+    .phone-pill--green { background: rgba(46,204,113,0.2); color: var(--accent-green); }
+    .phone-pill--orange{ background: rgba(255,107,53,0.2); color: var(--accent-orange); }
+
+    .phone-time {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 9px;
+      color: rgba(247,243,238,0.3);
     }
 
     .phone-card-text {
-      font-size: 11px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.88);
-      line-height: 1.3;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 400;
+      color: rgba(247,243,238,0.85);
     }
 
-    /* Tab bar inside phone */
-    .phone-tab-bar {
-      background: rgba(27,31,59,0.95);
-      border-top: 1px solid rgba(255,255,255,0.08);
-      border-radius: 0 0 26px 26px;
-      padding: 8px 0 4px;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      margin: auto -14px -24px -14px;
+    /* Float animations for cards */
+    .phone-card:nth-child(2) { animation: floatCard 3s ease-in-out infinite; }
+    .phone-card:nth-child(3) { animation: floatCard 3s ease-in-out 0.8s infinite; }
+    .phone-card:nth-child(4) { animation: floatCard 3s ease-in-out 1.6s infinite; }
+
+    @keyframes floatCard {
+      0%   { transform: translateY(0); }
+      50%  { transform: translateY(-5px); }
+      100% { transform: translateY(0); }
     }
 
-    .phone-tab {
+    /* Scroll indicator */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 3px;
-      padding: 4px 8px;
+      gap: 6px;
+      opacity: 0;
+      animation: heroFadeIn 0.7s ease-out 1200ms forwards;
     }
-
-    .phone-tab-icon {
-      font-size: 14px;
-      line-height: 1;
-    }
-
-    .phone-tab-label {
-      font-size: 8px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.38);
-      letter-spacing: 0.02em;
-    }
-
-    .phone-tab.active .phone-tab-icon,
-    .phone-tab.active .phone-tab-label {
-      color: var(--orange);
-    }
-
-    /* ─────────────────────────────────────────────────────────────────────
-       SECTION 2 — THE PROBLEM
-    ───────────────────────────────────────────────────────────────────── */
-    #problem {
-      background: var(--cream);
-      padding: var(--space-xl) 0;
-    }
-
-    .section-label {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
+    .scroll-indicator span {
+      font-size: 10px;
+      letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: var(--orange);
-      margin-bottom: var(--space-sm);
+      color: var(--text-muted);
+    }
+    .scroll-arrow {
+      width: 20px;
+      height: 20px;
+      border-right: 1.5px solid var(--text-muted);
+      border-bottom: 1.5px solid var(--text-muted);
+      transform: rotate(45deg);
+      animation: bounceDown 1.6s ease-in-out infinite;
+    }
+    @keyframes bounceDown {
+      0%, 100% { transform: rotate(45deg) translateY(0); }
+      50%       { transform: rotate(45deg) translateY(4px); }
     }
 
-    .section-header {
-      margin-bottom: var(--space-lg);
+    /* ═══════════════════════════════════════════════════════════════════════
+       SECTION 2 — THE PROBLEM
+    ═══════════════════════════════════════════════════════════════════════ */
+    #problem {
+      background: var(--bg-cream);
+      padding: 7rem 2rem;
+      position: relative;
     }
 
-    .section-header .t-title {
-      color: var(--navy);
+    .problem-inner {
+      max-width: 1100px;
+      margin: 0 auto;
     }
 
     .problem-grid {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: var(--space-sm);
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2.5rem;
+      margin-top: 0;
     }
 
-    @media (min-width: 640px) {
-      .problem-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 24px;
-      }
+    .problem-col {
+      position: relative;
+      padding-top: 1rem;
     }
 
-    .problem-card {
-      background: var(--white);
-      border-radius: var(--radius-md);
-      padding: 28px 24px 32px;
-      border: 1px solid var(--navy-08);
-      box-shadow: 0 2px 12px var(--navy-08);
+    .problem-number {
+      font-family: 'Playfair Display', serif;
+      font-size: 80px;
+      font-weight: 900;
+      color: rgba(27,31,59,0.07);
+      line-height: 1;
+      position: absolute;
+      top: -12px;
+      left: -8px;
+      user-select: none;
+    }
+
+    .problem-statement {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-dark);
+      line-height: 1.25;
+      margin-top: 2.5rem;
+      margin-bottom: 0.75rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .problem-body {
+      font-size: 15px;
+      font-weight: 300;
+      color: rgba(27,31,59,0.65);
+      line-height: 1.65;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       SECTION 3 — HOW IT WORKS
+    ═══════════════════════════════════════════════════════════════════════ */
+    #how {
+      background: var(--bg-navy);
+      padding: 7rem 2rem;
       position: relative;
       overflow: hidden;
     }
 
-    .problem-card::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--orange), var(--amber));
-      border-radius: var(--radius-md) var(--radius-md) 0 0;
-    }
-
-    .problem-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      background: rgba(255,107,53,0.10);
-      border-radius: var(--radius-sm);
-      font-size: 1.25rem;
-      margin-bottom: 14px;
-      color: var(--orange);
-      font-weight: 900;
-      font-style: normal;
-    }
-
-    .problem-title {
-      font-size: 1.0625rem;
-      font-weight: 800;
-      color: var(--navy);
-      margin-bottom: 10px;
-      letter-spacing: -0.01em;
-    }
-
-    .problem-body {
-      font-size: 0.9375rem;
-      color: #5A5F7A;
-      font-weight: 400;
-      line-height: 1.65;
-    }
-
-    /* ─────────────────────────────────────────────────────────────────────
-       SECTION 3 — HOW IT WORKS
-    ───────────────────────────────────────────────────────────────────── */
-    #how-it-works {
-      background: var(--navy);
-      color: var(--white);
-      padding: var(--space-xl) 0;
-    }
-
-    #how-it-works .section-label {
-      color: var(--amber);
-    }
-
-    #how-it-works .section-header .t-title {
-      color: var(--white);
-    }
-
-    .steps-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: var(--space-sm);
-    }
-
-    @media (min-width: 640px) {
-      .steps-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 24px;
-      }
-    }
-
-    .step-card {
-      background: var(--white-12);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: var(--radius-md);
-      padding: 32px 24px;
+    .how-inner {
+      max-width: 1100px;
+      margin: 0 auto;
       position: relative;
+      z-index: 1;
     }
 
-    .step-number {
-      font-size: 3.5rem;
+    .how-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .how-step {
+      position: relative;
+      padding: 1.5rem 0;
+    }
+
+    .how-step-number {
+      font-family: 'Playfair Display', serif;
+      font-size: 120px;
       font-weight: 900;
-      color: var(--orange);
+      color: var(--accent-orange);
+      opacity: 0.18;
       line-height: 1;
-      margin-bottom: 16px;
-      letter-spacing: -0.03em;
-      display: block;
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      user-select: none;
+      pointer-events: none;
     }
 
-    .step-title {
-      font-size: 1.125rem;
-      font-weight: 700;
-      color: var(--white);
-      line-height: 1.3;
+    .how-step-text {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text-primary);
+      position: relative;
+      z-index: 1;
+      padding-top: 3.5rem;
+      line-height: 1.35;
     }
 
-    .step-connector {
+    .how-connector {
       display: none;
     }
 
-    @media (min-width: 640px) {
-      .steps-grid {
-        position: relative;
-      }
-    }
-
-    .steps-footer {
-      margin-top: var(--space-md);
-      text-align: center;
-    }
-
-    .steps-footer-text {
+    .how-badge {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: rgba(255,107,53,0.15);
-      border: 1px solid rgba(255,107,53,0.30);
-      border-radius: var(--radius-full);
+      gap: 0.6rem;
+      background: rgba(255,179,71,0.12);
+      border: 1px solid rgba(255,179,71,0.22);
+      color: var(--accent-amber);
+      font-size: 13px;
+      font-weight: 500;
       padding: 10px 22px;
-      font-size: 0.9375rem;
-      font-weight: 600;
-      color: var(--orange);
+      border-radius: 50px;
     }
 
-    .steps-footer-text .clock {
-      font-size: 1rem;
-    }
-
-    /* ─────────────────────────────────────────────────────────────────────
+    /* ═══════════════════════════════════════════════════════════════════════
        SECTION 4 — FEATURES
-    ───────────────────────────────────────────────────────────────────── */
+    ═══════════════════════════════════════════════════════════════════════ */
     #features {
-      background: var(--cream);
-      padding: var(--space-xl) 0;
+      background: var(--bg-cream);
+      padding: 7rem 2rem;
+    }
+
+    .features-inner {
+      max-width: 1100px;
+      margin: 0 auto;
     }
 
     .features-grid {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: var(--space-sm);
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: auto auto;
+      gap: 1.25rem;
     }
 
-    @media (min-width: 640px) {
-      .features-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-      }
-    }
+    /* Row 1: small(3) small(3) large(6) */
+    .feat-tile:nth-child(1) { grid-column: span 3; }
+    .feat-tile:nth-child(2) { grid-column: span 3; }
+    .feat-tile:nth-child(3) { grid-column: span 6; } /* LARGE */
+    /* Row 2: large(6) small(3) small(3) */
+    .feat-tile:nth-child(4) { grid-column: span 6; } /* LARGE */
+    .feat-tile:nth-child(5) { grid-column: span 3; }
+    .feat-tile:nth-child(6) { grid-column: span 3; }
+    /* Row 3: small(3) small(3) small(6) */
+    .feat-tile:nth-child(7) { grid-column: span 4; }
+    .feat-tile:nth-child(8) { grid-column: span 4; }
 
-    .feature-tile {
-      background: var(--white);
-      border: 1px solid var(--navy-08);
-      border-radius: var(--radius-md);
-      padding: 24px 24px 26px;
-      box-shadow: 0 2px 12px var(--navy-08);
+    .feat-tile {
+      background: #fff;
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: 0 2px 12px rgba(27,31,59,0.07);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
       display: flex;
-      align-items: flex-start;
-      gap: 16px;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .feat-tile:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(27,31,59,0.13);
     }
 
-    .feature-tile:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px var(--navy-16);
+    /* Large tiles: bigger padding, bigger title */
+    .feat-tile:nth-child(3),
+    .feat-tile:nth-child(4) {
+      padding: 2.25rem;
     }
 
-    .feature-icon-wrap {
-      flex-shrink: 0;
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, rgba(255,107,53,0.12), rgba(255,179,71,0.08));
-      border: 1px solid rgba(255,107,53,0.15);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.375rem;
+    .feat-icon {
+      font-size: 28px;
+      line-height: 1;
     }
 
-    .feature-text {}
-
-    .feature-title {
-      font-size: 1rem;
-      font-weight: 800;
-      color: var(--navy);
-      margin-bottom: 6px;
-      letter-spacing: -0.01em;
+    .feat-title {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-dark);
+      line-height: 1.3;
+    }
+    .feat-tile:nth-child(3) .feat-title,
+    .feat-tile:nth-child(4) .feat-title {
+      font-size: 19px;
     }
 
-    .feature-body {
-      font-size: 0.9rem;
-      color: #5A5F7A;
-      font-weight: 400;
+    .feat-body {
+      font-size: 14px;
+      font-weight: 300;
+      color: #666;
       line-height: 1.6;
     }
 
-    /* ─────────────────────────────────────────────────────────────────────
-       SECTION 5 — PRIVACY BLOCK
-    ───────────────────────────────────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════════════════════
+       SECTION 5 — PRIVACY
+    ═══════════════════════════════════════════════════════════════════════ */
     #privacy {
-      background: var(--navy);
-      color: var(--white);
-      padding: var(--space-xl) 0;
+      background: var(--bg-void);
+      padding: 8rem 2rem;
+      position: relative;
+      overflow: hidden;
       text-align: center;
     }
 
-    .privacy-headline {
-      color: var(--white);
-      max-width: 700px;
-      margin: 0 auto var(--space-md);
+    .privacy-inner {
+      position: relative;
+      z-index: 2;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .privacy-rule {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.09);
+      margin: 2.5rem auto;
+      max-width: 600px;
+    }
+
+    .privacy-quote {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 5.5vw, 68px);
+      font-style: italic;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.15;
+    }
+
+    .privacy-quote .quote-mark {
+      color: var(--accent-amber);
     }
 
     .privacy-facts {
       display: flex;
-      flex-wrap: wrap;
+      align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 0;
+      flex-wrap: wrap;
+      margin-top: 2.5rem;
     }
 
     .privacy-fact {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--white-12);
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: var(--radius-full);
-      padding: 12px 24px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--white);
-      transition: background 0.15s ease;
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+      padding: 0 1.5rem;
     }
 
-    .privacy-fact:hover {
-      background: rgba(255,255,255,0.16);
+    .privacy-fact span {
+      color: var(--accent-orange);
+      margin-right: 0.35em;
     }
 
-    .privacy-fact .check {
-      color: var(--orange);
-      font-size: 1.125rem;
-      font-weight: 900;
+    .privacy-pipe {
+      color: rgba(255,255,255,0.2);
+      font-size: 20px;
+      font-weight: 200;
     }
 
-    /* ─────────────────────────────────────────────────────────────────────
-       SECTION 6 — WEEKLY RECAP HIGHLIGHT
-    ───────────────────────────────────────────────────────────────────── */
-    #weekly-recap {
-      background: var(--cream);
-      padding: var(--space-xl) 0;
+    /* ═══════════════════════════════════════════════════════════════════════
+       SECTION 6 — WEEKLY RECAP
+    ═══════════════════════════════════════════════════════════════════════ */
+    #recap {
+      background: var(--bg-navy);
+      padding: 7rem 2rem;
+      position: relative;
     }
 
-    .recap-wrap {
-      max-width: 720px;
+    .recap-inner {
+      max-width: 600px;
       margin: 0 auto;
     }
 
     .recap-card {
-      background: var(--white);
-      border: 1px solid var(--navy-08);
-      border-radius: var(--radius-lg);
-      padding: 40px 40px 36px;
-      box-shadow: 0 4px 24px var(--navy-08);
-      position: relative;
-      overflow: hidden;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 40px;
     }
 
-    @media (max-width: 480px) {
-      .recap-card {
-        padding: 28px 20px 24px;
-      }
-    }
-
-    /* Decorative corner arc */
-    .recap-card::before {
-      content: "";
-      position: absolute;
-      top: -60px;
-      right: -60px;
-      width: 200px;
-      height: 200px;
-      border: 30px solid rgba(255,107,53,0.07);
-      border-radius: 50%;
-      pointer-events: none;
-    }
-
-    .recap-card::after {
-      content: "";
-      position: absolute;
-      top: -20px;
-      right: -20px;
-      width: 100px;
-      height: 100px;
-      border: 20px solid rgba(255,179,71,0.08);
-      border-radius: 50%;
-      pointer-events: none;
-    }
-
-    .recap-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(255,107,53,0.10);
-      border: 1px solid rgba(255,107,53,0.20);
-      border-radius: var(--radius-full);
-      padding: 4px 12px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
+    .recap-card-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: var(--orange);
-      margin-bottom: 14px;
+      color: var(--accent-amber);
+      display: block;
+      margin-bottom: 1rem;
     }
 
-    .recap-header {
-      font-size: clamp(1.4rem, 3vw, 2rem);
-      font-weight: 900;
-      color: var(--navy);
-      letter-spacing: -0.02em;
-      line-height: 1.2;
-      margin-bottom: 28px;
+    .recap-headline {
+      font-family: 'Playfair Display', serif;
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.15;
+      margin-bottom: 2rem;
     }
 
-    .recap-list {
+    .recap-bullets {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      margin-bottom: 28px;
-    }
-
-    .recap-list li {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--navy);
+      gap: 1rem;
+      margin-bottom: 2rem;
     }
 
     .recap-bullet {
-      flex-shrink: 0;
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, rgba(255,107,53,0.12), rgba(255,179,71,0.10));
-      border: 1px solid rgba(255,107,53,0.20);
-      border-radius: var(--radius-sm);
       display: flex;
-      align-items: center;
-      justify-content: center;
+      align-items: flex-start;
+      gap: 0.75rem;
       font-size: 15px;
+      font-weight: 400;
+      color: rgba(247,243,238,0.82);
+      line-height: 1.45;
+    }
+
+    .recap-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-amber);
+      flex-shrink: 0;
+      margin-top: 7px;
     }
 
     .recap-footer {
-      border-top: 1px solid var(--navy-08);
-      padding-top: 20px;
-      font-size: 0.875rem;
-      color: #7A7F98;
-      font-weight: 500;
-      line-height: 1.55;
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--text-muted);
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.07);
     }
 
-    .recap-footer strong {
-      color: var(--navy);
+    /* ═══════════════════════════════════════════════════════════════════════
+       SECTION 7 — CTA + FOOTER
+    ═══════════════════════════════════════════════════════════════════════ */
+    #cta-section {
+      background: var(--bg-void);
+      padding: 8rem 2rem 3rem;
+      text-align: center;
+      border-top: 1px solid rgba(255,255,255,0.06);
     }
 
-    /* ─────────────────────────────────────────────────────────────────────
-       FOOTER
-    ───────────────────────────────────────────────────────────────────── */
-    footer {
-      background: var(--navy);
-      color: var(--white);
-      padding: var(--space-lg) 0 var(--space-md);
+    .cta-headline {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(36px, 5vw, 64px);
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.1;
+      margin-bottom: 1rem;
     }
 
-    .footer-inner {
+    .cta-sub {
+      font-size: 18px;
+      font-weight: 300;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+    }
+
+    .cta-fine-print {
+      margin-top: 1.25rem;
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* Footer */
+    .footer-rule {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 4rem auto 0;
+      max-width: 1100px;
+    }
+
+    .footer-row {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-brand {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 20px;
-      text-align: center;
+      gap: 2px;
     }
 
-    @media (min-width: 640px) {
-      .footer-inner {
-        flex-direction: row;
-        justify-content: space-between;
-        text-align: left;
-        align-items: flex-start;
-      }
-    }
-
-    .footer-brand {}
-
-    .footer-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 6px;
-    }
-
-    .footer-logo-icon {
-      width: 36px;
-      height: 36px;
-      background: var(--orange);
-      border-radius: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-    }
-
-    .footer-logo-name {
-      font-size: 1.125rem;
-      font-weight: 900;
-      color: var(--white);
-      letter-spacing: -0.01em;
+    .footer-wordmark {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
     }
 
     .footer-tagline {
-      font-size: 0.875rem;
-      color: var(--white-50);
-      font-weight: 400;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 300;
+      font-style: italic;
+      color: var(--accent-amber);
     }
 
     .footer-links {
       display: flex;
       align-items: center;
-      gap: var(--space-sm);
+      gap: 1.5rem;
     }
 
-    .footer-link {
-      font-size: 0.9375rem;
-      font-weight: 500;
-      color: var(--white-50);
-      text-decoration: none;
-      transition: color 0.15s ease;
-    }
-
-    .footer-link:hover {
-      color: var(--white);
-    }
-
-    .footer-link-sep {
-      color: rgba(255,255,255,0.20);
-      font-size: 0.75rem;
-    }
-
-    .footer-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      align-items: flex-end;
-    }
-
-    @media (max-width: 639px) {
-      .footer-meta {
-        align-items: center;
-      }
-    }
-
-    .footer-caption {
-      font-size: 0.8125rem;
-      color: var(--white-50);
+    .footer-links a {
+      font-size: 13px;
       font-weight: 400;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--text-primary); }
+
+    .footer-copy {
+      font-size: 13px;
+      color: var(--text-muted);
     }
 
-    .footer-divider {
-      width: 100%;
-      height: 1px;
-      background: rgba(255,255,255,0.08);
-      margin-top: 32px;
+    /* ═══════════════════════════════════════════════════════════════════════
+       RESPONSIVE — TABLET
+    ═══════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 1024px) {
+      .hero-inner {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+        text-align: center;
+        padding: 5rem 2rem 4rem;
+      }
+      .hero-sub { margin: 0 auto; }
+      .hero-cta-wrap { align-items: center; }
+      .hero-phone-wrap { order: -1; }
+      .phone-frame { width: 240px; height: 510px; }
+      .phone-island { width: 86px; height: 26px; }
+
+      .features-grid {
+        grid-template-columns: repeat(6, 1fr);
+      }
+      .feat-tile:nth-child(1) { grid-column: span 3; }
+      .feat-tile:nth-child(2) { grid-column: span 3; }
+      .feat-tile:nth-child(3) { grid-column: span 6; }
+      .feat-tile:nth-child(4) { grid-column: span 6; }
+      .feat-tile:nth-child(5) { grid-column: span 3; }
+      .feat-tile:nth-child(6) { grid-column: span 3; }
+      .feat-tile:nth-child(7) { grid-column: span 3; }
+      .feat-tile:nth-child(8) { grid-column: span 3; }
     }
 
-    .footer-bottom {
-      padding-top: 20px;
-      text-align: center;
-      font-size: 0.75rem;
-      color: rgba(255,255,255,0.25);
+    /* ═══════════════════════════════════════════════════════════════════════
+       RESPONSIVE — MOBILE
+    ═══════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .hero-inner {
+        padding: 4rem 1.5rem 3rem;
+        gap: 2rem;
+      }
+
+      .problem-grid,
+      .how-steps {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+      .feat-tile:nth-child(n) { grid-column: span 1; }
+
+      .phone-frame { width: 220px; height: 470px; }
+      .phone-island { width: 78px; height: 24px; }
+
+      .privacy-facts {
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+      .privacy-pipe { display: none; }
+
+      .footer-row {
+        flex-direction: column;
+        text-align: center;
+      }
+      .footer-links { justify-content: center; }
+
+      #problem, #how, #features, #privacy, #recap, #cta-section {
+        padding: 5rem 1.5rem;
+      }
+
+      .recap-card { padding: 28px 22px; }
+
+      .cta-headline { font-size: clamp(32px, 8vw, 52px); }
+    }
+
+    @media (max-width: 480px) {
+      .phone-frame { width: 200px; height: 430px; border-radius: 36px; }
+      .phone-island { width: 72px; height: 22px; }
+      .phone-card-text { font-size: 11px; }
+      .how-step-number { font-size: 90px; }
+      .how-step-text { font-size: 19px; }
     }
   </style>
 </head>
+
 <body>
 
-  <!-- ═══════════════════════════════════════════════════════════════════
+  <!-- ═══════════════════════════════════════════════════════════════
        SECTION 1 — HERO
-  ════════════════════════════════════════════════════════════════════ -->
-  <header id="hero" role="banner">
-    <div class="container">
-      <div class="hero-inner">
+  ═══════════════════════════════════════════════════════════════════ -->
+  <section id="hero" aria-label="Hero">
+    <div class="noise-overlay" aria-hidden="true"></div>
 
-        <!-- Left: copy -->
-        <div class="hero-copy">
-          <span class="hero-eyebrow">
-            <span class="dot" aria-hidden="true"></span>
-            Native iOS App
-          </span>
-
-          <h1 class="t-display hero-headline">
-            Your food diary.<br>
-            <span class="accent">No calories.</span><br>
-            No fluff. No cloud.
-          </h1>
-
-          <p class="hero-subheadline">
-            Log what you eat in seconds — by text, voice, or photo. Everything stays on your device.
-          </p>
-
-          <div class="hero-actions">
-            <a href="#" class="btn-cta" aria-label="Download FoodLogger on the App Store">
-              <span class="store-icon" aria-hidden="true">&#xf8ff;</span>
-              Download on the App Store
-            </a>
-          </div>
-
-          <p class="hero-trust">Free to download &bull; No account required &bull; Zero network requests</p>
+    <div class="hero-inner">
+      <!-- Left: text -->
+      <div class="hero-text">
+        <div class="hero-eyebrow" aria-label="FoodLogger">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M11 3C9.9 3 9 3.9 9 5v6H7V5c0-1.1-.9-2-2-2S3 3.9 3 5v7a5 5 0 004 4.9V21h2v-4.1A5 5 0 0013 12V5c0-1.1-.9-2-2-2zm8 0c-1.1 0-2 .9-2 2v7c0 2.21 1.79 4 4 4V5c0-1.1-.9-2-2-2z"/>
+          </svg>
+          FoodLogger
         </div>
 
-        <!-- Right: iPhone mockup -->
-        <div class="phone-wrap" aria-hidden="true" role="presentation">
-          <div class="phone">
-            <div class="phone-vol">
-              <span></span>
-              <span></span>
+        <div class="hero-headline" aria-label="Your food. Your story.">
+          <span class="hero-line1">YOUR FOOD.</span>
+          <span class="hero-line2">YOUR STORY.</span>
+        </div>
+
+        <p class="hero-sub">
+          No calories. No cloud. No compromise.
+        </p>
+
+        <div class="hero-cta-wrap">
+          <a href="#" class="btn-cta" aria-label="Download FoodLogger on the App Store">
+            Download on the App Store
+          </a>
+          <span class="hero-fine-print">iOS 26 &middot; 100% free &middot; No account required</span>
+        </div>
+      </div>
+
+      <!-- Right: phone mockup -->
+      <div class="hero-phone-wrap" aria-hidden="true">
+        <div class="phone-glow"></div>
+        <div class="phone-frame">
+          <div class="phone-island"></div>
+          <div class="phone-screen">
+            <div class="phone-date-label">Today &mdash; Sunday</div>
+
+            <div class="phone-card phone-card--teal">
+              <div class="phone-card-top">
+                <span class="phone-pill phone-pill--teal">Beverage</span>
+                <span class="phone-time">just now</span>
+              </div>
+              <div class="phone-card-text">Matcha latte</div>
             </div>
 
-            <div class="phone-status-bar"></div>
-
-            <div class="phone-nav">
-              <span class="phone-nav-title">Today</span>
-              <span class="phone-nav-btn">+</span>
+            <div class="phone-card phone-card--green">
+              <div class="phone-card-top">
+                <span class="phone-pill phone-pill--green">Lunch</span>
+                <span class="phone-time">2h ago</span>
+              </div>
+              <div class="phone-card-text">Avocado toast with poached egg</div>
             </div>
 
-            <div class="phone-streak">
-              <div>
-                <div class="phone-streak-label">Current streak</div>
-                <div class="phone-streak-count">🔥 14 days</div>
+            <div class="phone-card phone-card--orange">
+              <div class="phone-card-top">
+                <span class="phone-pill phone-pill--orange">Breakfast</span>
+                <span class="phone-time">8h ago</span>
               </div>
-              <div style="font-size:10px;color:rgba(255,255,255,0.40);font-weight:500;">3 logged today</div>
-            </div>
-
-            <div class="phone-card">
-              <div class="phone-card-bar lunch"></div>
-              <div class="phone-card-content">
-                <div class="phone-card-header">
-                  <span class="phone-card-category">Lunch</span>
-                  <span class="phone-card-time">Just now</span>
-                </div>
-                <div class="phone-card-text">Ramen noodles with soft-boiled egg and scallions</div>
-              </div>
-            </div>
-
-            <div class="phone-card">
-              <div class="phone-card-bar snack"></div>
-              <div class="phone-card-content">
-                <div class="phone-card-header">
-                  <span class="phone-card-category snack-badge">Snack</span>
-                  <span class="phone-card-time">2h ago</span>
-                </div>
-                <div class="phone-card-text">Greek yogurt with honey and walnuts</div>
-              </div>
-            </div>
-
-            <div class="phone-card">
-              <div class="phone-card-bar dinner"></div>
-              <div class="phone-card-content">
-                <div class="phone-card-header">
-                  <span class="phone-card-category dinner-badge">Breakfast</span>
-                  <span class="phone-card-time">8h ago</span>
-                </div>
-                <div class="phone-card-text">Avocado toast with everything bagel seasoning</div>
-              </div>
-            </div>
-
-            <div style="flex:1;"></div>
-
-            <div class="phone-tab-bar">
-              <div class="phone-tab active">
-                <span class="phone-tab-icon">&#9200;</span>
-                <span class="phone-tab-label">Today</span>
-              </div>
-              <div class="phone-tab">
-                <span class="phone-tab-icon">&#128197;</span>
-                <span class="phone-tab-label">Calendar</span>
-              </div>
-              <div class="phone-tab">
-                <span class="phone-tab-icon">&#128200;</span>
-                <span class="phone-tab-label">Insights</span>
-              </div>
-              <div class="phone-tab">
-                <span class="phone-tab-icon">&#9881;</span>
-                <span class="phone-tab-label">Settings</span>
-              </div>
+              <div class="phone-card-text">Greek yogurt with granola and honey</div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="scroll-indicator" aria-hidden="true">
+      <span>Scroll</span>
+      <div class="scroll-arrow"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SECTION 2 — THE PROBLEM
+  ═══════════════════════════════════════════════════════════════════ -->
+  <section id="problem" aria-label="The problem with most food apps">
+    <div class="problem-inner">
+      <span class="section-label section-label--orange">The Problem</span>
+      <div class="problem-grid">
+        <div class="problem-col reveal">
+          <span class="problem-number" aria-hidden="true">01</span>
+          <h3 class="problem-statement">Calorie apps are exhausting.</h3>
+          <p class="problem-body">Counting numbers turns eating into math homework. You stop logging. Then you stop caring.</p>
+        </div>
+        <div class="problem-col reveal">
+          <span class="problem-number" aria-hidden="true">02</span>
+          <h3 class="problem-statement">Cloud diaries aren't private.</h3>
+          <p class="problem-body">Your food habits live on someone else's server. Served back to you as ads. Or just gone when the startup shuts down.</p>
+        </div>
+        <div class="problem-col reveal">
+          <span class="problem-number" aria-hidden="true">03</span>
+          <h3 class="problem-statement">Most apps do too much.</h3>
+          <p class="problem-body">You just want to write down what you ate. Not manage a meal plan, track macros, and unlock achievements.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SECTION 3 — HOW IT WORKS
+  ═══════════════════════════════════════════════════════════════════ -->
+  <section id="how" aria-label="How FoodLogger works">
+    <div class="how-inner">
+      <span class="section-label section-label--amber">How It Works</span>
+      <div class="how-steps">
+        <div class="how-step reveal">
+          <span class="how-step-number" aria-hidden="true">1</span>
+          <p class="how-step-text">Open the app.<br>Tap&nbsp;+.</p>
+        </div>
+        <div class="how-step reveal">
+          <span class="how-step-number" aria-hidden="true">2</span>
+          <p class="how-step-text">Type, speak,<br>or snap a photo.</p>
+        </div>
+        <div class="how-step reveal">
+          <span class="how-step-number" aria-hidden="true">3</span>
+          <p class="how-step-text">Done.<br>It&rsquo;s logged.</p>
+        </div>
+      </div>
+
+      <div class="reveal" style="text-align:center;">
+        <span class="how-badge">
+          <span aria-hidden="true">&#9889;</span>
+          Average log time: under 10 seconds
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SECTION 4 — FEATURES
+  ═══════════════════════════════════════════════════════════════════ -->
+  <section id="features" aria-label="Features">
+    <div class="features-inner">
+      <span class="section-label section-label--orange">Features</span>
+      <div class="features-grid">
+
+        <article class="feat-tile reveal">
+          <div class="feat-icon" aria-hidden="true">&#128221;</div>
+          <h3 class="feat-title">Text, Voice &amp; Photo</h3>
+          <p class="feat-body">Log a meal however feels natural. Switch between all three modes from the same sheet.</p>
+        </article>
+
+        <article class="feat-tile reveal">
+          <div class="feat-icon" aria-hidden="true">&#127991;</div>
+          <h3 class="feat-title">Auto Meal Detection</h3>
+          <p class="feat-body">Breakfast, lunch, dinner, snack, dessert, beverage &mdash; auto-tagged. Override with one tap.</p>
+        </article>
+
+        <!-- LARGE tile -->
+        <article class="feat-tile reveal">
+          <div class="feat-icon" aria-hidden="true">&#128202;</div>
+          <h3 class="feat-title">Insights &amp; Charts</h3>
+          <p class="feat-body">8 chart types. 5 time periods. Top foods by frequency, daily activity, category breakdown, meal timing by hour, week-over-week comparison, monthly consistency heatmap, food search, and a streak stats card. See what you actually eat.</p>
+        </article>
+
+        <!-- LARGE tile -->
+        <article class="feat-tile reveal">
+          <div class="feat-icon" aria-hidden="true">&#128197;</div>
+          <h3 class="feat-title">Weekly Recap</h3>
+          <p class="feat-body">Every Sunday, your week arrives as a notification. Tap it for a full six-page recap &mdash; category breakdowns, top foods, consistency score, and a shareable summary card. Generated entirely on your device.</p>
+        </article>
+
+        <article class="feat-tile reveal">
+          <div class="feat-icon" aria-hidden="true">&#128293;</div>
+          <h3 class="feat-title">Streak Tracking</h3>
+          <p class="feat-body">Consecutive days logged. Shown in the Today banner every time you open the app.</p>
+        </article>
+
+        <article class="feat-tile reveal">
+          <div class="feat-icon" aria-hidden="true">&#128274;</div>
+          <h3 class="feat-title">100% On-Device</h3>
+          <p class="feat-body">Zero network requests. Ever. Nothing you log leaves your phone.</p>
+        </article>
+
+        <article class="feat-tile reveal">
+          <div class="feat-icon" aria-hidden="true">&#128197;</div>
+          <h3 class="feat-title">Calendar &amp; Search</h3>
+          <p class="feat-body">Browse any day on the full month grid. Search every entry you&rsquo;ve ever logged.</p>
+        </article>
+
+        <article class="feat-tile reveal">
+          <div class="feat-icon" aria-hidden="true">&#9992;&#65039;</div>
+          <h3 class="feat-title">Works Offline</h3>
+          <p class="feat-body">No connection? No problem. FoodLogger has never needed the internet.</p>
+        </article>
 
       </div>
     </div>
-  </header>
+  </section>
 
-  <main>
+  <!-- ═══════════════════════════════════════════════════════════════
+       SECTION 5 — PRIVACY
+  ═══════════════════════════════════════════════════════════════════ -->
+  <section id="privacy" aria-label="Privacy">
+    <div class="noise-overlay" aria-hidden="true"></div>
+    <div class="privacy-inner">
+      <hr class="privacy-rule" aria-hidden="true" />
 
-    <!-- ═══════════════════════════════════════════════════════════════════
-         SECTION 2 — THE PROBLEM
-    ════════════════════════════════════════════════════════════════════ -->
-    <section id="problem" aria-labelledby="problem-heading">
-      <div class="container">
+      <blockquote class="privacy-quote reveal">
+        <span class="quote-mark">&ldquo;</span>Your data never<br>leaves your phone.<span class="quote-mark">&rdquo;</span>
+      </blockquote>
 
-        <div class="section-header">
-          <p class="section-label">Why FoodLogger exists</p>
-          <h2 id="problem-heading" class="t-title">Other food apps get in the way.</h2>
+      <hr class="privacy-rule" aria-hidden="true" />
+
+      <div class="privacy-facts reveal" role="list">
+        <div class="privacy-fact" role="listitem">
+          <span aria-hidden="true">&#10003;</span> No account
         </div>
-
-        <div class="problem-grid">
-
-          <article class="problem-card">
-            <span class="problem-icon" aria-hidden="true">&#10007;</span>
-            <h3 class="problem-title">Calorie apps are exhausting</h3>
-            <p class="problem-body">Counting numbers turns eating into math homework.</p>
-          </article>
-
-          <article class="problem-card">
-            <span class="problem-icon" aria-hidden="true">&#10007;</span>
-            <h3 class="problem-title">Cloud diaries aren't private</h3>
-            <p class="problem-body">Your food habits live on someone else's server.</p>
-          </article>
-
-          <article class="problem-card">
-            <span class="problem-icon" aria-hidden="true">&#10007;</span>
-            <h3 class="problem-title">Most apps do too much</h3>
-            <p class="problem-body">You just want to write down what you ate.</p>
-          </article>
-
+        <span class="privacy-pipe" aria-hidden="true">|</span>
+        <div class="privacy-fact" role="listitem">
+          <span aria-hidden="true">&#10003;</span> No server
         </div>
-
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════════════════════════
-         SECTION 3 — HOW IT WORKS
-    ════════════════════════════════════════════════════════════════════ -->
-    <section id="how-it-works" aria-labelledby="how-heading">
-      <div class="container">
-
-        <div class="section-header">
-          <p class="section-label">Dead simple</p>
-          <h2 id="how-heading" class="t-title">Three steps. That's it.</h2>
-        </div>
-
-        <div class="steps-grid">
-
-          <div class="step-card">
-            <span class="step-number" aria-hidden="true">01</span>
-            <p class="step-title">Open the app. Tap&nbsp;+.</p>
-          </div>
-
-          <div class="step-card">
-            <span class="step-number" aria-hidden="true">02</span>
-            <p class="step-title">Type, speak, or snap a photo.</p>
-          </div>
-
-          <div class="step-card">
-            <span class="step-number" aria-hidden="true">03</span>
-            <p class="step-title">Done. It's logged.</p>
-          </div>
-
-        </div>
-
-        <div class="steps-footer">
-          <span class="steps-footer-text">
-            <span class="clock" aria-hidden="true">&#9201;</span>
-            Average log time: under 10 seconds.
-          </span>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════════════════════════
-         SECTION 4 — FEATURES
-    ════════════════════════════════════════════════════════════════════ -->
-    <section id="features" aria-labelledby="features-heading">
-      <div class="container">
-
-        <div class="section-header">
-          <p class="section-label">Everything you need</p>
-          <h2 id="features-heading" class="t-title">Built for real life. Nothing more.</h2>
-        </div>
-
-        <div class="features-grid">
-
-          <div class="feature-tile">
-            <div class="feature-icon-wrap" aria-hidden="true">&#127908;</div>
-            <div class="feature-text">
-              <h3 class="feature-title">Text, Voice &amp; Photo</h3>
-              <p class="feature-body">Log a meal however feels natural in the moment.</p>
-            </div>
-          </div>
-
-          <div class="feature-tile">
-            <div class="feature-icon-wrap" aria-hidden="true">&#128269;</div>
-            <div class="feature-text">
-              <h3 class="feature-title">Auto Meal Detection</h3>
-              <p class="feature-body">The app categorises breakfast, lunch, dinner, snacks, and more — automatically.</p>
-            </div>
-          </div>
-
-          <div class="feature-tile">
-            <div class="feature-icon-wrap" aria-hidden="true">&#128197;</div>
-            <div class="feature-text">
-              <h3 class="feature-title">Weekly Recap</h3>
-              <p class="feature-body">Every Sunday, a notification summarises your week: top foods, streak, and consistency.</p>
-            </div>
-          </div>
-
-          <div class="feature-tile">
-            <div class="feature-icon-wrap" aria-hidden="true">&#128200;</div>
-            <div class="feature-text">
-              <h3 class="feature-title">Insights &amp; Charts</h3>
-              <p class="feature-body">See which foods appear most, your daily activity, meal timing patterns, and week-over-week trends.</p>
-            </div>
-          </div>
-
-          <div class="feature-tile">
-            <div class="feature-icon-wrap" aria-hidden="true">&#128293;</div>
-            <div class="feature-text">
-              <h3 class="feature-title">Streak Tracking</h3>
-              <p class="feature-body">A running count of consecutive days you've logged — no account needed to keep the streak alive.</p>
-            </div>
-          </div>
-
-          <div class="feature-tile">
-            <div class="feature-icon-wrap" aria-hidden="true">&#128274;</div>
-            <div class="feature-text">
-              <h3 class="feature-title">100% On-Device</h3>
-              <p class="feature-body">No account. No server. No cloud sync. Your data never leaves your phone.</p>
-            </div>
-          </div>
-
-          <div class="feature-tile">
-            <div class="feature-icon-wrap" aria-hidden="true">&#128279;</div>
-            <div class="feature-text">
-              <h3 class="feature-title">Calendar &amp; Search</h3>
-              <p class="feature-body">Browse any past day on a full calendar, or search across all your entries instantly.</p>
-            </div>
-          </div>
-
-          <div class="feature-tile">
-            <div class="feature-icon-wrap" aria-hidden="true">&#9729;</div>
-            <div class="feature-text">
-              <h3 class="feature-title">Works Offline, Always</h3>
-              <p class="feature-body">Zero network requests. The app works the same with or without a connection.</p>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════════════════════════
-         SECTION 5 — PRIVACY BLOCK
-    ════════════════════════════════════════════════════════════════════ -->
-    <section id="privacy" aria-labelledby="privacy-heading">
-      <div class="container">
-
-        <h2 id="privacy-heading" class="t-display privacy-headline">
-          Your data never leaves your phone.
-        </h2>
-
-        <div class="privacy-facts" role="list">
-
-          <div class="privacy-fact" role="listitem">
-            <span class="check" aria-hidden="true">&#10003;</span>
-            No account
-          </div>
-
-          <div class="privacy-fact" role="listitem">
-            <span class="check" aria-hidden="true">&#10003;</span>
-            No server
-          </div>
-
-          <div class="privacy-fact" role="listitem">
-            <span class="check" aria-hidden="true">&#10003;</span>
-            No tracking
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ═══════════════════════════════════════════════════════════════════
-         SECTION 6 — WEEKLY RECAP HIGHLIGHT
-    ════════════════════════════════════════════════════════════════════ -->
-    <section id="weekly-recap" aria-labelledby="recap-heading">
-      <div class="container">
-        <div class="recap-wrap">
-          <div class="recap-card">
-
-            <span class="recap-eyebrow" aria-label="Feature spotlight">
-              &#9733; Feature spotlight
-            </span>
-
-            <h2 id="recap-heading" class="recap-header">
-              Every Sunday,<br>your week in review.
-            </h2>
-
-            <ul class="recap-list" aria-label="Weekly recap includes">
-
-              <li>
-                <span class="recap-bullet" aria-hidden="true">&#127869;</span>
-                Top food of the week
-              </li>
-
-              <li>
-                <span class="recap-bullet" aria-hidden="true">&#128293;</span>
-                Current streak count
-              </li>
-
-              <li>
-                <span class="recap-bullet" aria-hidden="true">&#128200;</span>
-                Consistency score
-              </li>
-
-              <li>
-                <span class="recap-bullet" aria-hidden="true">&#8597;</span>
-                Week-over-week comparison
-              </li>
-
-            </ul>
-
-            <div class="recap-footer">
-              <strong>Delivered as a notification.</strong> Generated entirely on your device — no data sent anywhere.
-            </div>
-
-          </div>
+        <span class="privacy-pipe" aria-hidden="true">|</span>
+        <div class="privacy-fact" role="listitem">
+          <span aria-hidden="true">&#10003;</span> No tracking
         </div>
       </div>
-    </section>
-
-  </main>
-
-  <!-- ═══════════════════════════════════════════════════════════════════
-       FOOTER
-  ════════════════════════════════════════════════════════════════════ -->
-  <footer role="contentinfo">
-    <div class="container">
-      <div class="footer-inner">
-
-        <div class="footer-brand">
-          <div class="footer-logo">
-            <div class="footer-logo-icon" aria-hidden="true">&#127869;</div>
-            <span class="footer-logo-name">FoodLogger</span>
-          </div>
-          <p class="footer-tagline">Your food. Your story.</p>
-        </div>
-
-        <nav aria-label="Footer navigation">
-          <div class="footer-links">
-            <a href="#" class="footer-link">Privacy Policy</a>
-            <span class="footer-link-sep" aria-hidden="true">&bull;</span>
-            <a href="#" class="footer-link">Support</a>
-          </div>
-        </nav>
-
-        <div class="footer-meta">
-          <p class="footer-caption">Built for iOS 26.</p>
-          <p class="footer-caption">No in-app purchases.</p>
-        </div>
-
-      </div>
-
-      <div class="footer-divider" aria-hidden="true"></div>
-      <p class="footer-bottom">&copy; 2026 FoodLogger. All rights reserved.</p>
     </div>
-  </footer>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SECTION 6 — WEEKLY RECAP
+  ═══════════════════════════════════════════════════════════════════ -->
+  <section id="recap" aria-label="Weekly Recap feature">
+    <div class="recap-inner">
+      <article class="recap-card reveal">
+        <span class="recap-card-label">Every Sunday</span>
+        <h2 class="recap-headline">Your week in review.</h2>
+        <ul class="recap-bullets" aria-label="Weekly recap includes">
+          <li class="recap-bullet">
+            <div class="recap-dot" aria-hidden="true"></div>
+            Your most-eaten food of the week
+          </li>
+          <li class="recap-bullet">
+            <div class="recap-dot" aria-hidden="true"></div>
+            Current streak count
+          </li>
+          <li class="recap-bullet">
+            <div class="recap-dot" aria-hidden="true"></div>
+            Consistency score &mdash; the percentage of days you logged
+          </li>
+          <li class="recap-bullet">
+            <div class="recap-dot" aria-hidden="true"></div>
+            This week vs last week comparison
+          </li>
+        </ul>
+        <p class="recap-footer">Delivered as a notification. Generated on your device.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SECTION 7 — CTA + FOOTER
+  ═══════════════════════════════════════════════════════════════════ -->
+  <section id="cta-section" aria-label="Download FoodLogger">
+    <div class="reveal">
+      <h2 class="cta-headline">Start your food diary.</h2>
+      <p class="cta-sub">Private. Fast. Always yours.</p>
+      <a href="#" class="btn-cta" aria-label="Download FoodLogger on the App Store">
+        Download on the App Store
+      </a>
+      <p class="cta-fine-print">iOS 26 &middot; No in-app purchases &middot; No account</p>
+    </div>
+
+    <hr class="footer-rule" aria-hidden="true" />
+
+    <footer class="footer-row" role="contentinfo">
+      <div class="footer-brand">
+        <span class="footer-wordmark">FoodLogger</span>
+        <span class="footer-tagline">Your food. Your story.</span>
+      </div>
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Support</a>
+        <span class="footer-copy">&copy; 2026</span>
+      </nav>
+    </footer>
+  </section>
 
   <script>
-    // Smooth-scroll anchor links — no inline event handlers
-    document.addEventListener("DOMContentLoaded", function () {
-      // Intercept all anchor clicks for same-page smooth scroll
-      document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
-        anchor.addEventListener("click", function (e) {
-          var targetId = anchor.getAttribute("href");
-          if (targetId === "#") return; // Let CTA button work as-is
-          var target = document.querySelector(targetId);
-          if (target) {
-            e.preventDefault();
-            target.scrollIntoView({ behavior: "smooth", block: "start" });
+    // ─── Scroll reveal via IntersectionObserver ───────────────────────────
+    (function () {
+      var targets = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window)) {
+        targets.forEach(function (el) { el.classList.add('visible'); });
+        return;
+      }
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
           }
         });
-      });
+      }, { threshold: 0.12 });
 
-      // Subtle entrance animation for feature tiles using IntersectionObserver
-      if ("IntersectionObserver" in window) {
-        var animItems = document.querySelectorAll(
-          ".feature-tile, .problem-card, .step-card, .recap-card, .privacy-fact"
-        );
-
-        // Set initial state
-        animItems.forEach(function (el) {
-          el.style.opacity = "0";
-          el.style.transform = "translateY(20px)";
-          el.style.transition = "opacity 0.45s ease, transform 0.45s ease";
-        });
-
-        var observer = new IntersectionObserver(
-          function (entries) {
-            entries.forEach(function (entry) {
-              if (entry.isIntersecting) {
-                entry.target.style.opacity = "1";
-                entry.target.style.transform = "translateY(0)";
-                observer.unobserve(entry.target);
-              }
-            });
-          },
-          { threshold: 0.12 }
-        );
-
-        animItems.forEach(function (el) {
-          observer.observe(el);
-        });
-      }
-    });
+      targets.forEach(function (el) { observer.observe(el); });
+    }());
   </script>
-
 </body>
 </html>
