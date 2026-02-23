@@ -70,6 +70,13 @@ struct ItemPair: Identifiable {
     let count: Int
 }
 
+struct MoodCount: Identifiable {
+    var id: String { mood.rawValue }
+    let mood: MoodTag
+    let count: Int
+    let percentage: Double
+}
+
 struct WeekdayCount: Identifiable {
     var id: Int { weekday }
     /// Calendar.weekday value: 1=Sun, 2=Mon … 7=Sat
@@ -268,6 +275,27 @@ struct WeekdayCount: Identifiable {
             .sorted { $0.count > $1.count }
             .prefix(10)
             .map { ItemPair(item1: $0.item1, item2: $0.item2, count: $0.count) }
+    }
+
+    // MARK: - Mood Distribution
+
+    func moodDistribution(from entries: [FoodEntry], period: AnalyticsPeriod) -> [MoodCount] {
+        let filtered = filterByPeriod(entries, period: period)
+        let withMood = filtered.filter { $0.mood != nil }
+        let total = withMood.count
+        var freq: [MoodTag: Int] = [:]
+        for entry in withMood {
+            if let mood = entry.mood {
+                freq[mood, default: 0] += 1
+            }
+        }
+        return MoodTag.allCases.compactMap { mood in
+            let count = freq[mood] ?? 0
+            guard count > 0 else { return nil }
+            let pct = total > 0 ? Double(count) / Double(total) * 100.0 : 0.0
+            return MoodCount(mood: mood, count: count, percentage: pct)
+        }
+        .sorted { $0.count > $1.count }
     }
 
     // MARK: - Food Item Timeline API

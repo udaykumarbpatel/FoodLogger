@@ -26,6 +26,7 @@ final class FoodEntry {
     var createdAt: Date
     var category: MealCategory?
     var updatedAt: Date?
+    var mood: MoodTag?
 
     init(
         id: UUID = UUID(),
@@ -36,7 +37,8 @@ final class FoodEntry {
         mediaURL: URL? = nil,
         createdAt: Date = Date(),
         category: MealCategory? = nil,
-        updatedAt: Date? = nil
+        updatedAt: Date? = nil,
+        mood: MoodTag? = nil
     ) {
         self.id = id
         self.date = date
@@ -47,5 +49,6 @@ final class FoodEntry {
         self.createdAt = createdAt
         self.category = category
         self.updatedAt = updatedAt
+        self.mood = mood
     }
 }

@@ -34,6 +34,12 @@ struct EntryCardView: View {
 
                 // ── Footer row ───────────────────────────────────────────
                 HStack(spacing: 6) {
+                    if let mood = entry.mood {
+                        Text(mood.emoji)
+                            .font(.caption)
+                        Spacer(minLength: 4)
+                            .frame(maxWidth: 4)
+                    }
                     timestampLabel
                     if entry.updatedAt != nil {
                         Text("· edited")

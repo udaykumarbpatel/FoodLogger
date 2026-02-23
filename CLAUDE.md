@@ -75,6 +75,7 @@ enum InputType: String, Codable, CaseIterable { case text, image, voice }
     var createdAt: Date
     var category: MealCategory?   // Auto-detected on create; user can override in card or Add Entry sheet
     var updatedAt: Date?          // Set when an entry is edited; nil on initial creation
+    var mood: MoodTag?            // Optional post-meal mood tag; user picks in Add Entry sheet
 }
 ```
 
@@ -93,18 +94,19 @@ FoodLogger/                     ← git root & Xcode project root
   FoodLogger/                   ← app source (file-system sync root)
     App/FoodLoggerApp.swift       ← @main; AppDelegate (UIApplicationDelegate + UNUserNotificationCenterDelegate); quick actions; Notification.Name extensions (.quickAction, .openAddEntry, .openWeeklyRecap); AppRootView with Monday recap trigger
     Models/FoodEntry.swift
+    Models/MoodTag.swift          ← enum MoodTag (energised/satisfied/neutral/sluggish/uncomfortable); has .emoji, .label, .color
     Models/MealCategory.swift     ← enum MealCategory (breakfast/lunch/snack/dinner/dessert/beverage); has .color and .icon
     App/FoodLoggerApp.swift       ← @main; AppDelegate; quick actions; Notification.Name extensions; AppRootView with launch sequence: LaunchScreenView (1.4s) → AppShellView + OnboardingView fullScreenCover (first launch only) + Monday recap trigger
     Views/OnboardingView.swift    ← 4-page fullScreenCover onboarding (Welcome/LogAnything/Patterns/Private); custom capsule page indicator; skip button; UserDefaults key "onboardingComplete"; shown once on first launch
     Views/LaunchScreenView.swift  ← animated launch screen: typographic wordmark ("YOUR FOOD." cream serif slides up, "YOUR STORY." orange italic serif follows, subtitle fades last); near-black navy background; calls onComplete after 1.4s; shown every launch
     Views/AppIconView.swift       ← SwiftUI reference view of the app icon design (1024×1024 canvas; near-black navy bg + "YOUR FOOD." cream serif + "YOUR STORY." orange italic serif); NO .clipShape — iOS applies its own mask so the PNG must be a full square; export via Settings → Developer → Export App Icon
-    Views/AppShellView.swift      ← ROOT: ZStack(TabView + MilestoneOverlayView); 4 tabs (Today/Calendar/Insights/Settings); owns @Query allEntries + NotificationService; in init() configures UITabBar.appearance (navy bg, orange selected, dim-white unselected) AND UINavigationBar.appearance (brandVoid bg, cream title text, orange tint); TabView uses .toolbarColorScheme(.dark, for: .tabBar) + .preferredColorScheme(.dark) to force dark mode for the whole app (designed as a dark-only journal); listens for .openWeeklyRecap; tracks milestones + schedules streak-risk notification on entry count change
+    Views/AppShellView.swift      ← ROOT: ZStack(TabView + MilestoneOverlayView); 4 tabs (Today/Calendar/Insights/Settings); owns @Query allEntries + NotificationService; in init() configures UITabBar.appearance (navy bg, orange selected, dim-white unselected) AND UINavigationBar.appearance (brandVoid bg, cream title text, orange tint); TabView uses .toolbarColorScheme(.dark, for: .tabBar) + .preferredColorScheme(.dark) to force dark mode for the whole app (designed as a dark-only journal); listens for .openWeeklyRecap; tracks milestones + schedules streak-risk notification on entry count change; syncWidgetData() writes streak/todayCount/lastEntry to shared App Group UserDefaults on launch and every entry count change
     Views/WeeklyRecapView.swift   ← 6-page fullScreenCover recap (Hero/Stats/TopFood/Categories/Consistency/Share); Canvas confetti on perfect week; ImageRenderer share card; ConfettiView + ConfettiParticle are now internal (not private) so AppShellView can reuse them
     Views/TodayTabView.swift      ← Tab 1: NavigationStack wrapping DayLogView + dark editorial banner (brandVoid bg, ALL CAPS amber greeting, appTitleSerif date, black-weight streak flame+count, caption entry count); orange accent rule 1pt at bottom; flame color: brandWarm <7, orange 7–13, red 14+
     Views/DayLogView.swift        ← swipe-between-days shell (DayLogView) + entry list body (DayLogBody); toolbar: search + today only; DayLogBody fires success haptic + contextual toast ("First entry today!" / "Meal #N today!") via .onChange(of: entries.count) when count increases on today's page
     Views/CalendarTabView.swift   ← Tab 2: full-screen calendar on brandVoid background; month header uses appDisplaySerif cream name + amber year + circular nav buttons; day-of-week row in amber rounded; day cells: heatmap (brandAccent opacity 0→0.22→0.50→0.80 for 0/1/2/3+ entries), selected=brandAccent fill, today=cream ring; brandAccent divider between grid and day panel; day entries panel uses appHeadlineSerif title; CalendarTabDayCell takes entryCount: Int
     Views/AddEntryView.swift      ← text/voice/image; edit mode via editingEntry: FoodEntry? param; capsule pill mode selector; .presentationDetents([.large])
-    Views/EntryCardView.swift     ← card with full-width colored category header band (30pt, ALL CAPS icon+label, tappable Menu for category change) + dark body (brandVoid + category tint); cornerRadius 16; footer row with timestamp + "· edited"; colored shadow; brandAccent stroke when highlighted
+    Views/EntryCardView.swift     ← card with full-width colored category header band (30pt, ALL CAPS icon+label, tappable Menu for category change) + dark body (brandVoid + category tint); cornerRadius 16; footer row with mood emoji + timestamp + "· edited"; colored shadow; brandAccent stroke when highlighted
     Views/CalendarView.swift      ← legacy month-grid sheet (kept for reference; navigation now uses CalendarTabView)
     Views/SearchView.swift        ← full-text search sheet; tapping a result navigates + highlights entry
     Views/SummaryView.swift       ← weekly/monthly grouped entry list sheet
@@ -133,6 +135,10 @@ FoodLogger/                     ← git root & Xcode project root
     WeeklySummaryServiceTests.swift     (Swift Testing — 25 tests for WeeklySummaryService)
     NotificationRecapTests.swift        (Swift Testing — 15 tests for weekly recap notification)
   FoodLogger.xcodeproj/
+  Widget/                       ← Widget extension source (NOT in main app target — separate extension target needed)
+    FoodLoggerWidget.swift        ← entry, provider, small+medium views, widget configs, @main WidgetBundle
+    FoodLoggerWidget.entitlements ← App Group entitlement for shared UserDefaults
+    SETUP.md                      ← manual Xcode setup instructions for the extension target
   Marketing/                    ← App Store listing (appstore.md) and landing page (index.html); no build target
 ```
 
@@ -206,6 +212,8 @@ Uses a **shell + body** pattern inside a **`TabView` with page style** for swipe
 - Category picker: `Picker` with `.menu` style; "Auto-detect" (nil) for create mode, "None" (nil) for edit mode; all 6 MealCategory cases listed
 - On create: `selectedCategory ?? categoryService.detect(hour:description:visionLabels:)` — manual pick overrides auto-detect
 - On edit: sets `entry.category = selectedCategory` (nil = removes tag)
+- **Mood picker:** horizontal scrollable row of `MoodTag` capsule buttons below the category picker. Tapping toggles selection (tap again to deselect). Assigned to `entry.mood` on save in both create and edit modes. Label: "HOW DID IT MAKE YOU FEEL?" in ALL CAPS amber.
+- **Favourites quick-log:** in text create mode only, a horizontal scrollable row of top 5 food items (from `InsightsService.topItems` over 3 months) appears above the TextEditor. Tapping a capsule sets `textInput` to that food name. Uses `@Query private var allEntries` for data. Hidden when no favourites or in edit/voice/image mode.
 - **Time picker:** `@State private var entryTime: Date` — initialised smartly on create: today → `Date()` (current time), past day → `forDate` (midnight, so the user sets an intentional time); edit mode → `entry.createdAt`. `DatePicker` with `.hourAndMinute` components shown below the category picker in both modes. `resolvedCreatedAt(day:time:)` combines the year/month/day from `forDate` (or `entry.date`) with the hour/minute from `entryTime` and writes the result to `entry.createdAt` on save, preserving day-grouping while updating sort order within the day.
 
 ## EntryCardView architecture
@@ -214,7 +222,7 @@ Compact tile design — 4–5 cards visible on screen simultaneously without scr
 - Parameters: `entry: FoodEntry`, `isToday: Bool`, `isHighlighted: Bool = false`
 - Layout: `VStack(spacing: 0)` with two zones clipped by `RoundedRectangle(cornerRadius: 16, .continuous)`:
   - **Category header band** (30pt tall): full-width solid `entry.category?.color` background (nil → `#95A5A6` gray); SF Symbol icon + ALL CAPS category name in white `.bold .caption`; entire band is a tappable `Menu` to change/remove the category
-  - **Card body**: dark `Color.brandVoid` + `categoryColor.opacity(0.07)` tint (applied via view-builder `.background {}`); `processedDescription` in `.body .medium`, `.lineLimit(2)` default (expands on tap), `.minimumScaleFactor(0.85)`, `Color.brandSurface` foreground; **footer row**: timestamp in `brandSurface.opacity(0.5)`, "· edited" italic in `brandWarm` if `updatedAt != nil`, `›` chevron in `brandSurface.opacity(0.25)` right
+  - **Card body**: dark `Color.brandVoid` + `categoryColor.opacity(0.07)` tint (applied via view-builder `.background {}`); `processedDescription` in `.body .medium`, `.lineLimit(2)` default (expands on tap), `.minimumScaleFactor(0.85)`, `Color.brandSurface` foreground; **footer row**: mood emoji (if non-nil) then timestamp in `brandSurface.opacity(0.5)`, "· edited" italic in `brandWarm` if `updatedAt != nil`, `›` chevron in `brandSurface.opacity(0.25)` right
 - Shadow: `categoryColor.opacity(0.22)`, radius 8, y 3 — colored to match category
 - Border: `categoryColor.opacity(0.18)` 1pt stroke; `brandAccent` 2pt stroke when `isHighlighted` (from Search)
 - Tap on body toggles `@State isExpanded` — expands description + shows thumbnail and original input if applicable
@@ -249,7 +257,7 @@ Compact tile design — 4–5 cards visible on screen simultaneously without scr
 - **StreakService**: `struct`. `compute(from: [FoodEntry]) -> StreakInfo` builds a `Set<Date>` of days with entries then counts consecutive days backward from today (or yesterday if no entry today).
 - **NotificationService**: `@MainActor final class`. `scheduleReminders(at:hasLoggedToday:)` removes all pending requests then schedules 14 individual non-repeating `UNCalendarNotificationTrigger` notifications (one per day), skipping today if already logged and skipping past times. **Why 14:** iOS caps an app at 64 pending notifications; 14 covers two weeks of daily reminders while leaving ~50 slots free for other future notification types. The window is rescheduled from scratch on every call so it always stays current. `scheduleWeeklyRecap(summary:)` schedules a repeating Sunday 7pm notification (identifier `"weekly-recap"`) with `summary.headline` as the body, replacing any existing recap notification without disturbing daily reminders. `scheduleStreakRisk(currentStreak:hasLoggedToday:)` schedules a one-off 8pm notification (identifier `"streak-risk"`) if streak > 0 and no entry today; cancels it when already logged or streak is zero.
 - **WeeklySummaryService**: `@MainActor final class`. `generateSummary(from: [FoodEntry]) -> WeeklySummary` computes Mon–Sun ISO week window, filters entries to this/last week, and returns a `WeeklySummary` with all analytics. `HeadlineType` priority: `.streak` (streak > 7) → `.topFood` (topFoodCount ≥ 3) → `.improvement` (vsLastWeek > 3) → `.perfect` (missedDays == 0) → `.default`. Tokeniser strips stopwords matching `InsightsService` and tokens shorter than 3 chars.
-- **InsightsService**: `@MainActor final class`. Accepts `[FoodEntry]`, returns typed analytics structs. Key types: `AnalyticsPeriod` (week/month/threeMonths/year/allTime), `FoodItemFrequency`, `DailyCount`, `CategoryCount`, `InputTypeCount`, `HourCount`, `WeekComparison`, `DayActivity`, `ItemPair`, `WeekdayCount` (all `Identifiable` except `WeekComparison`). General methods: `topItems`, `dailyCounts`, `categoryDistribution`, `inputTypeBreakdown`, `mealTiming`, `weekOverWeekTrend`, `monthlyHeatmap`, `coOccurrence`. Food item timeline methods: `entriesMatching(term:from:)` (case-insensitive substring match), `itemDailyCounts(for:from:period:)` (gap-filled daily occurrence counts), `itemMealTiming(for:from:period:)` (hour-of-day distribution), `itemWeekdayPattern(for:from:period:)` (Mon–Sun occurrence counts as `[WeekdayCount]`). Strips stopwords: a, the, and, with, of, in, for, had, ate, some, my, an.
+- **InsightsService**: `@MainActor final class`. Accepts `[FoodEntry]`, returns typed analytics structs. Key types: `AnalyticsPeriod` (week/month/threeMonths/year/allTime), `FoodItemFrequency`, `DailyCount`, `CategoryCount`, `InputTypeCount`, `HourCount`, `WeekComparison`, `DayActivity`, `ItemPair`, `WeekdayCount`, `MoodCount` (all `Identifiable` except `WeekComparison`). General methods: `topItems`, `dailyCounts`, `categoryDistribution`, `inputTypeBreakdown`, `mealTiming`, `weekOverWeekTrend`, `monthlyHeatmap`, `coOccurrence`, `moodDistribution`. `moodDistribution(from:period:)` returns `[MoodCount]` (mood, count, percentage) sorted by frequency. Food item timeline methods: `entriesMatching(term:from:)` (case-insensitive substring match), `itemDailyCounts(for:from:period:)` (gap-filled daily occurrence counts), `itemMealTiming(for:from:period:)` (hour-of-day distribution), `itemWeekdayPattern(for:from:period:)` (Mon–Sun occurrence counts as `[WeekdayCount]`). Strips stopwords: a, the, and, with, of, in, for, had, ate, some, my, an.
 - **SampleDataService**: `@MainActor final class`. Two public methods: `seedIfNeeded(context:)` — no-op if any `FoodEntry` exists (used on first launch); `seed(context:)` — unconditional, always inserts a full batch (used by "Clear & Re-seed" in Settings). Seeds 120 days of data (~85% of days have 1–3 entries), all 6 categories, all 3 input types, 35+ realistic food items, every `rawInput` prefixed with `[SAMPLE]`. Uses deterministic LCG (`SeededRNG`) for reproducible output. Image entries have `mediaURL = nil`.
 
 ## InsightsView architecture
@@ -257,7 +265,7 @@ Presented as **Tab 3** in the bottom tab bar. `AppShellView` owns `@Query allEnt
 
 - **Story headline card:** rendered first, above the period picker. Calls `WeeklySummaryService().generateSummary(from: entries)` on `.onAppear`. Card design: ALL CAPS `brandAccent` eyebrow label + `appTitleSerif` headline in `brandSurface` + amber subheadline. Uses view-builder `.background {}` with `ZStack` on `brandVoid`. Refreshes each time the tab becomes visible.
 - **Period picker:** segmented control (7D / 30D / 3M / 1Y / All) drives all time-sensitive charts via `@State selectedPeriod: AnalyticsPeriod`
-- **Cards rendered in order:** storyHeadlineCard → periodPicker → statsCard → recordsCard → topFoodsCard → dailyActivityCard → categoryCard → mealTimingCard → weekTrendCard → heatmapCard → foodSearchCard
+- **Cards rendered in order:** storyHeadlineCard → periodPicker → statsCard → recordsCard → topFoodsCard → dailyActivityCard → categoryCard → moodCard → mealTimingCard → weekTrendCard → heatmapCard → foodSearchCard
 - **Food Item Timeline drill-down:** Tapping any row in foodSearchCard presents `FoodItemTimelineView` as a sheet (`@State selectedFoodItem: FoodItemFrequency?`, `.sheet(item: $selectedFoodItem)`). The timeline view shows 3 charts — occurrence over time (bar per day), day-of-week pattern (Mon–Sun bars), and time-of-day distribution — all driven by `InsightsService` food-item methods with an independent period picker.
 - **Charts (Swift Charts only — no third-party deps):**
   - **Stats Card** — streak count (flame icon), consistency % ring progress (Circle `.trim`), total entries in period
@@ -265,6 +273,7 @@ Presented as **Tab 3** in the bottom tab bar. `AppShellView` owns `@Query allEnt
   - **Top Foods** — horizontal `BarMark`, top 10 food items by frequency
   - **Daily Activity** — `LineMark` + `AreaMark` fill over the selected period
   - **Categories** — donut `SectorMark` with `innerRadius: .ratio(0.6)`, total count center label, color per `MealCategory.color`
+  - **Mood** — horizontal `BarMark` per `MoodTag`, colored by `MoodTag.color`; empty state prompts user to log mood
   - **Meal Timing** — vertical `BarMark` by hour, color-banded by time of day (orange/green/yellow/indigo)
   - **Week vs Last Week** — grouped `BarMark` with trend label (↑/↓ percentage, green/red)
   - **Monthly Consistency** — custom `LazyVGrid` 7-column heatmap (NOT Charts), accent-opacity scale for 0/1/2/3+ entries; previous/next month navigation via `@State heatmapMonth`
@@ -311,6 +320,21 @@ Presented as **Tab 3** in the bottom tab bar. `AppShellView` owns `@Query allEnt
 |-----|------|--------|---------|
 | `"onboardingComplete"` | `Bool` | `OnboardingView` | Set to `true` after first-launch onboarding is dismissed; gates whether OnboardingView shows |
 | `"triggeredMilestones"` | `[Int]` | `AppShellView` | List of milestone counts (10/25/50/100/250) already shown; prevents repeat confetti overlays. Pre-populated with already-exceeded milestones on first launch to avoid flooding new users. |
+
+## Home Screen Widget
+Widget source files live in `FoodLogger/Widget/` — outside the app's file-system sync root, so they are **not compiled into the main app target**. The developer must add a Widget Extension target in Xcode manually (see `FoodLogger/Widget/SETUP.md`).
+
+- **App Group:** `group.com.ashwath.ios.FoodLogger`
+- **Shared UserDefaults keys** (written by `AppShellView.syncWidgetData()`):
+  - `widget_streak` (`Int`) — current streak count
+  - `widget_today_count` (`Int`) — number of entries logged today
+  - `widget_last_entry` (`String`) — processedDescription of most recent entry today
+- `syncWidgetData()` is called in `.task` (on launch) and `.onChange(of: allEntries.count)` (on every add/delete)
+- **Small widget** (`.systemSmall`): streak flame + count, today's logged count
+- **Medium widget** (`.systemMedium`): streak + today count + last entry + "Log Food" CTA
+- Both widgets deep-link to `foodlogger://addEntry` on tap
+- `WidgetCenter.shared.reloadAllTimelines()` call is commented out in `syncWidgetData()` — uncomment after the extension target is added
+- Widget files: `FoodLoggerWidget.swift` (entry, provider, views, widget configs, bundle), `FoodLoggerWidget.entitlements`, `SETUP.md`
 
 ## Frameworks
 All Apple first-party, all auto-linked. **The Frameworks build phase is intentionally empty** — do not add frameworks there.

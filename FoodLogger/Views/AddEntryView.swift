@@ -7,6 +7,7 @@ import Speech
 struct AddEntryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Query private var allEntries: [FoodEntry]
 
     let forDate: Date
     let editingEntry: FoodEntry?
@@ -20,6 +21,7 @@ struct AddEntryView: View {
     @State private var selectedMode: InputMode
     @State private var textInput: String
     @State private var selectedCategory: MealCategory?
+    @State private var selectedMood: MoodTag?
     @State private var entryTime: Date
 
     // Photo state
@@ -81,11 +83,13 @@ struct AddEntryView: View {
             _selectedMode = State(initialValue: .text)
             _textInput = State(initialValue: entry.processedDescription)
             _selectedCategory = State(initialValue: entry.category)
+            _selectedMood = State(initialValue: entry.mood)
             _entryTime = State(initialValue: entry.createdAt)
         } else {
             _selectedMode = State(initialValue: .text)
             _textInput = State(initialValue: "")
             _selectedCategory = State(initialValue: nil)
+            _selectedMood = State(initialValue: nil)
             // Today → current time so the sort order is natural.
             // Past day → midnight (startOfDay) so the user sets an intentional time.
             let isToday = Calendar.current.isDateInToday(forDate)
@@ -121,6 +125,7 @@ struct AddEntryView: View {
                             }
                         }
                         categoryPickerSection
+                        moodPickerSection
                         timePickerSection
                     }
                     .padding()
@@ -244,13 +249,89 @@ struct AddEntryView: View {
         }
     }
 
+    // MARK: - Mood Picker
+
+    private var moodPickerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("HOW DID IT MAKE YOU FEEL?")
+                .font(.caption.bold())
+                .foregroundStyle(Color.brandWarm)
+                .kerning(1.0)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(MoodTag.allCases, id: \.self) { mood in
+                        Button {
+                            if selectedMood == mood {
+                                selectedMood = nil
+                            } else {
+                                selectedMood = mood
+                            }
+                        } label: {
+                            Text("\(mood.emoji) \(mood.label)")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(selectedMood == mood ? mood.color : .secondary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(mood.color.opacity(selectedMood == mood ? 0.25 : 0.08))
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .stroke(mood.color.opacity(selectedMood == mood ? 0.8 : 0.2), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Text Mode
+
+    private var favourites: [String] {
+        guard editingEntry == nil else { return [] }
+        let service = InsightsService()
+        return service.topItems(from: allEntries, period: .threeMonths, limit: 5).map { $0.item }
+    }
 
     private var textInputView: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("What did you eat?")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+
+            if !favourites.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("FAVOURITES")
+                        .font(.caption.bold())
+                        .foregroundStyle(Color.brandWarm)
+                        .kerning(1.0)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(favourites, id: \.self) { item in
+                                Button {
+                                    textInput = item.capitalized
+                                } label: {
+                                    Text(item.capitalized)
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(Color.brandAccent)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Color.brandAccent.opacity(0.12))
+                                        .clipShape(Capsule())
+                                        .overlay(
+                                            Capsule()
+                                                .stroke(Color.brandAccent.opacity(0.35), lineWidth: 1)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+            }
 
             TextEditor(text: $textInput)
                 .frame(minHeight: 140)
@@ -483,6 +564,7 @@ struct AddEntryView: View {
         if let entry = editingEntry {
             entry.processedDescription = textInput.trimmingCharacters(in: .whitespacesAndNewlines)
             entry.category = selectedCategory
+            entry.mood = selectedMood
             entry.createdAt = resolvedCreatedAt(day: entry.date, time: entryTime)
             entry.updatedAt = Date()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -536,7 +618,8 @@ struct AddEntryView: View {
             processedDescription: processedDescription,
             mediaURL: mediaURL,
             createdAt: resolvedCreatedAt(day: forDate, time: entryTime),
-            category: category
+            category: category,
+            mood: selectedMood
         )
         modelContext.insert(entry)
         UINotificationFeedbackGenerator().notificationOccurred(.success)

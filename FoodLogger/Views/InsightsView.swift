@@ -61,6 +61,10 @@ struct InsightsView: View {
         }
     }
 
+    private var moodData: [MoodCount] {
+        service.moodDistribution(from: entries, period: selectedPeriod)
+    }
+
     private var totalEntriesInPeriod: Int {
         service.filterByPeriod(entries, period: selectedPeriod).count
     }
@@ -145,6 +149,7 @@ struct InsightsView: View {
                             topFoodsCard
                             dailyActivityCard
                             categoryCard
+                            moodCard
                             mealTimingCard
                             weekTrendCard
                             heatmapCard
@@ -431,6 +436,27 @@ struct InsightsView: View {
                     }
                     .padding(.bottom, 4)
                 }
+            }
+        }
+    }
+
+    // MARK: - Chart C2: Mood Distribution
+
+    private var moodCard: some View {
+        chartCard(title: "Mood") {
+            if moodData.isEmpty {
+                emptyChartState(icon: "face.smiling", message: "Log your mood when adding entries")
+            } else {
+                Chart(moodData) { item in
+                    BarMark(
+                        x: .value("Count", item.count),
+                        y: .value("Mood", "\(item.mood.emoji) \(item.mood.label)")
+                    )
+                    .foregroundStyle(item.mood.color)
+                }
+                .chartYAxis(.automatic)
+                .frame(height: CGFloat(max(120, moodData.count * 36)))
+                .padding(.top, 8)
             }
         }
     }

@@ -112,10 +112,12 @@ struct AppShellView: View {
         .task {
             // Pre-mark milestones already exceeded at launch so we don't flood a new user.
             initMilestonesIfNeeded()
+            syncWidgetData()
             await scheduleStreakRiskIfNeeded()
         }
         .onChange(of: allEntries.count) { oldCount, newCount in
             checkMilestones(oldCount: oldCount, newCount: newCount)
+            syncWidgetData()
             Task { await scheduleStreakRiskIfNeeded() }
         }
     }
@@ -154,6 +156,30 @@ struct AppShellView: View {
             currentStreak: streakInfo.count,
             hasLoggedToday: streakInfo.hasEntryToday
         )
+    }
+
+    // MARK: - Widget data sync
+
+    private func syncWidgetData() {
+        let defaults = UserDefaults(suiteName: "group.com.ashwath.ios.FoodLogger")
+        guard let defaults = defaults else { return }
+
+        let info = streakService.compute(from: allEntries)
+        defaults.set(info.count, forKey: "widget_streak")
+
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        let todayEntries = allEntries.filter { $0.date >= today && $0.date < tomorrow }
+        defaults.set(todayEntries.count, forKey: "widget_today_count")
+
+        if let lastEntry = todayEntries.sorted(by: { $0.createdAt > $1.createdAt }).first {
+            defaults.set(lastEntry.processedDescription, forKey: "widget_last_entry")
+        } else {
+            defaults.removeObject(forKey: "widget_last_entry")
+        }
+
+        // Uncomment after adding the widget extension target:
+        // WidgetCenter.shared.reloadAllTimelines()
     }
 }
 
