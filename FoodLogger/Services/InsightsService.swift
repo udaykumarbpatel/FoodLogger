@@ -70,6 +70,17 @@ struct ItemPair: Identifiable {
     let count: Int
 }
 
+struct WeekdayCount: Identifiable {
+    var id: Int { weekday }
+    /// Calendar.weekday value: 1=Sun, 2=Mon … 7=Sat
+    let weekday: Int
+    let count: Int
+
+    var shortLabel: String {
+        ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][weekday - 1]
+    }
+}
+
 // MARK: - Service
 
 @MainActor final class InsightsService {
@@ -257,6 +268,66 @@ struct ItemPair: Identifiable {
             .sorted { $0.count > $1.count }
             .prefix(10)
             .map { ItemPair(item1: $0.item1, item2: $0.item2, count: $0.count) }
+    }
+
+    // MARK: - Food Item Timeline API
+
+    /// All entries whose processedDescription contains `term` (case-insensitive substring match), sorted oldest first.
+    func entriesMatching(term: String, from entries: [FoodEntry]) -> [FoodEntry] {
+        let lower = term.lowercased()
+        return entries
+            .filter { $0.processedDescription.lowercased().contains(lower) }
+            .sorted { $0.date < $1.date }
+    }
+
+    /// Daily occurrence counts for `term` within the given period, gap-filled so every day is represented.
+    func itemDailyCounts(for term: String, from entries: [FoodEntry], period: AnalyticsPeriod) -> [DailyCount] {
+        let matched = filterByPeriod(entriesMatching(term: term, from: entries), period: period)
+        let calendar = Calendar.current
+        var countMap: [Date: Int] = [:]
+        for entry in matched {
+            let day = calendar.startOfDay(for: entry.date)
+            countMap[day, default: 0] += 1
+        }
+        let (startDate, endDate) = periodBounds(for: period)
+        guard let start = startDate else {
+            // allTime: return sparse data (only days with occurrences)
+            return countMap.sorted { $0.key < $1.key }.map { DailyCount(date: $0.key, count: $0.value) }
+        }
+        var results: [DailyCount] = []
+        var current = calendar.startOfDay(for: start)
+        let end = calendar.startOfDay(for: endDate)
+        while current <= end {
+            results.append(DailyCount(date: current, count: countMap[current] ?? 0))
+            guard let next = calendar.date(byAdding: .day, value: 1, to: current) else { break }
+            current = next
+        }
+        return results
+    }
+
+    /// Hour-of-day distribution for `term` within the given period.
+    func itemMealTiming(for term: String, from entries: [FoodEntry], period: AnalyticsPeriod) -> [HourCount] {
+        let matched = filterByPeriod(entriesMatching(term: term, from: entries), period: period)
+        var freq: [Int: Int] = [:]
+        let calendar = Calendar.current
+        for entry in matched {
+            let hour = calendar.component(.hour, from: entry.createdAt)
+            freq[hour, default: 0] += 1
+        }
+        return (0..<24).map { HourCount(hour: $0, count: freq[$0] ?? 0) }
+    }
+
+    /// Day-of-week pattern for `term`, ordered Monday–Sunday, within the given period.
+    func itemWeekdayPattern(for term: String, from entries: [FoodEntry], period: AnalyticsPeriod) -> [WeekdayCount] {
+        let matched = filterByPeriod(entriesMatching(term: term, from: entries), period: period)
+        var freq: [Int: Int] = [:]
+        let calendar = Calendar.current
+        for entry in matched {
+            let weekday = calendar.component(.weekday, from: entry.date) // 1=Sun..7=Sat
+            freq[weekday, default: 0] += 1
+        }
+        // Return Mon..Sun order: [2,3,4,5,6,7,1]
+        return [2, 3, 4, 5, 6, 7, 1].map { WeekdayCount(weekday: $0, count: freq[$0] ?? 0) }
     }
 
     // MARK: - Private helpers

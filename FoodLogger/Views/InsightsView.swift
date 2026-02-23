@@ -19,6 +19,7 @@ struct InsightsView: View {
     @State private var heatmapMonth: Date = Date()
     @State private var searchText: String = ""
     @State private var weeklySummary: WeeklySummary?
+    @State private var selectedFoodItem: FoodItemFrequency?
 
     private let service = InsightsService()
     private let summaryService = WeeklySummaryService()
@@ -161,6 +162,9 @@ struct InsightsView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
             .onAppear {
                 weeklySummary = summaryService.generateSummary(from: entries)
+            }
+            .sheet(item: $selectedFoodItem) { food in
+                FoodItemTimelineView(term: food.item, entries: entries)
             }
         }
     }
@@ -698,19 +702,29 @@ struct InsightsView: View {
                 } else {
                     LazyVStack(spacing: 0) {
                         ForEach(filteredSearchFoods.prefix(20)) { food in
-                            HStack {
-                                Text(food.item.capitalized)
-                                    .font(.subheadline)
-                                Spacer()
-                                Text("\(food.count)")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(Color.accentColor, in: Capsule())
+                            Button {
+                                selectedFoodItem = food
+                            } label: {
+                                HStack {
+                                    Text(food.item.capitalized)
+                                        .font(.subheadline)
+                                        .foregroundStyle(Color.brandSurface)
+                                    Spacer()
+                                    Text("\(food.count)")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(Color.accentColor, in: Capsule())
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption2)
+                                        .foregroundStyle(Color.brandSurface.opacity(0.3))
+                                }
+                                .padding(.vertical, 10)
+                                .contentShape(Rectangle())
                             }
-                            .padding(.vertical, 10)
+                            .buttonStyle(.plain)
 
                             if food.id != filteredSearchFoods.prefix(20).last?.id {
                                 Divider()
