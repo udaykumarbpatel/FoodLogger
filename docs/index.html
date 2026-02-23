@@ -584,7 +584,70 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
-       SECTION 5 — PRIVACY
+       SECTION 5 — SCREENSHOTS
+    ═══════════════════════════════════════════════════════════════════════ */
+    #screenshots {
+      background: var(--bg-navy);
+      padding: 7rem 2rem;
+      overflow: hidden;
+    }
+
+    .screenshots-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .screenshots-scroll {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 0;
+    }
+
+    .screenshot-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .screenshot-frame {
+      position: relative;
+      width: 200px;
+      flex-shrink: 0;
+    }
+
+    .screenshot-frame img {
+      width: 100%;
+      border-radius: 32px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.4),
+        0 24px 64px rgba(0,0,0,0.5);
+      display: block;
+    }
+
+    .screenshot-label {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      .screenshots-scroll { gap: 1rem; }
+      .screenshot-frame { width: 160px; }
+    }
+
+    @media (max-width: 480px) {
+      .screenshot-frame { width: 140px; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       SECTION 6 — PRIVACY (was 5)
     ═══════════════════════════════════════════════════════════════════════ */
     #privacy {
       background: var(--bg-void);
@@ -980,8 +1043,8 @@
     <ul class="nav-links" role="list">
       <li><a href="#how">How it works</a></li>
       <li><a href="#features">Features</a></li>
+      <li><a href="#screenshots">Screenshots</a></li>
       <li><a href="#privacy">Privacy</a></li>
-      <li><a href="#recap">Weekly Recap</a></li>
     </ul>
     <a href="#" class="nav-cta" aria-label="Download FoodLogger on the App Store">Download</a>
   </header>
@@ -1187,7 +1250,47 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       SECTION 5 — PRIVACY
+       SECTION 5 — SCREENSHOTS
+  ═══════════════════════════════════════════════════════════════════ -->
+  <section id="screenshots" aria-label="App screenshots">
+    <div class="screenshots-inner">
+      <span class="section-label section-label--amber">The App</span>
+      <div class="screenshots-scroll">
+
+        <div class="screenshot-item reveal">
+          <div class="screenshot-frame">
+            <img src="screenshots/today.png" alt="Today tab — dark editorial journal view with meal cards" loading="lazy" />
+          </div>
+          <span class="screenshot-label">Today</span>
+        </div>
+
+        <div class="screenshot-item reveal">
+          <div class="screenshot-frame">
+            <img src="screenshots/calendar.png" alt="Calendar tab — month grid with orange heatmap" loading="lazy" />
+          </div>
+          <span class="screenshot-label">Calendar</span>
+        </div>
+
+        <div class="screenshot-item reveal">
+          <div class="screenshot-frame">
+            <img src="screenshots/insights.png" alt="Insights tab — stats, streak, and records cards" loading="lazy" />
+          </div>
+          <span class="screenshot-label">Insights</span>
+        </div>
+
+        <div class="screenshot-item reveal">
+          <div class="screenshot-frame">
+            <img src="screenshots/insights_charts.png" alt="Insights — monthly heatmap and food search" loading="lazy" />
+          </div>
+          <span class="screenshot-label">Analytics</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SECTION 6 — PRIVACY
   ═══════════════════════════════════════════════════════════════════ -->
   <section id="privacy" aria-label="Privacy">
     <div class="noise-overlay" aria-hidden="true"></div>
