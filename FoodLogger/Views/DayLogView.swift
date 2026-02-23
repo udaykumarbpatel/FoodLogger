@@ -275,6 +275,7 @@ private struct DayLogBody: View {
                 .clipShape(Circle())
                 .shadow(color: Color.brandAccent.opacity(0.45), radius: 14, x: 0, y: 6)
         }
+        .accessibilityLabel("Add Entry")
         .padding(20)
     }
 
