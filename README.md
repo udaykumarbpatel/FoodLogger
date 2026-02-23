@@ -12,16 +12,16 @@ A native iOS food diary app with a **Dark Editorial Journal** aesthetic. Log wha
 
 - AI-generated description shown before saving — edit it before committing
 - Auto-detected meal categories (Breakfast, Lunch, Snack, Dinner, Dessert, Beverage) with manual override
-- Bottom tab bar navigation: Today, Calendar, Insights, Settings
-- Day log home screen — swipe left/right to move between days
+- Bottom tab bar navigation: Journal, Calendar, Foods, Insights, Settings
+- Day log home screen (Journal tab) — swipe left/right to move between days; editorial banner shows the viewed day's date and contextual label (good morning / yesterday / X days ago)
 - Swipe left on an entry to delete or edit; full swipe deletes instantly
 - Long-press for context menu: edit, "I ate it today" / "I ate again", delete
 - Full-screen calendar tab to browse and navigate to any past day
 - Full-text search across all entries
 - Weekly and monthly summary view
 - Consecutive-day streak counter
-- Analytics dashboard (Insights tab): weekly story headline, top foods, daily activity, category breakdown, meal timing, week-over-week comparison, monthly heatmap, food search, stats card, personal records card (longest streak / best day / unique foods), mood distribution chart
-- Tap any food in Insights search to see its full history — occurrence timeline, day-of-week pattern, and time-of-day distribution
+- Foods tab: searchable list of every food you've logged, ranked by frequency — tap any item to see its full history (occurrence timeline, day-of-week pattern, time-of-day distribution, mood breakdown)
+- Analytics dashboard (Insights tab): weekly story headline, top foods, daily activity, category breakdown, mood distribution, meal timing, week-over-week comparison, monthly heatmap, stats card, personal records card (longest streak / best day / unique foods)
 - Mood/Energy tagging: log how a meal made you feel (⚡️ Energised, 😌 Satisfied, 😐 Neutral, 😴 Sluggish, 😣 Uncomfortable); mood emoji shown on each card
 - Favourites quick-log: your top 5 most-eaten foods appear as tappable pills when adding a new entry
 - Calendar tab shows entry-density heatmap — deeper orange for more entries on a day
@@ -61,17 +61,18 @@ FoodLogger/
 │   ├── MealCategory.swift           # enum — breakfast, lunch, snack, dinner, dessert, beverage
 │   └── MoodTag.swift                # enum — energised, satisfied, neutral, sluggish, uncomfortable; has .emoji, .label, .color
 ├── Views/
-│   ├── AppShellView.swift           # 4-tab outer TabView; weekly recap deep-link listener
-│   ├── TodayTabView.swift           # Gradient banner + DayLogView
+│   ├── AppShellView.swift           # 5-tab outer TabView; weekly recap deep-link listener
+│   ├── TodayTabView.swift           # Editorial banner (viewed day's date + contextual label) + DayLogView
 │   ├── CalendarTabView.swift        # Full-screen split calendar + inline day entries
-│   ├── DayLogView.swift             # Home screen (shell + body pattern), streak badge, search toolbar
+│   ├── FoodsTabView.swift           # Searchable food list ranked by frequency; pushes FoodItemTimelineView
+│   ├── DayLogView.swift             # Home screen (shell + body pattern), streak badge
 │   ├── AddEntryView.swift           # Text / Voice (β) / Photo (β) input + edit mode; beta banners
 │   ├── EntryCardView.swift          # Card with full-width colored category header band + dark body, category badge menu, "edited" label
 │   ├── CalendarView.swift           # Month-grid sheet for date navigation
 │   ├── SearchView.swift             # Full-text search across all entries
 │   ├── SummaryView.swift            # Weekly / monthly grouped entry list
-│   ├── FoodItemTimelineView.swift   # Sheet: occurrence timeline, day-of-week pattern, time-of-day distribution for a specific food
-│   ├── InsightsView.swift           # Analytics dashboard — story headline, stats, records, 9 Swift Charts cards + period picker
+│   ├── FoodItemTimelineView.swift   # Push destination: occurrence timeline, day-of-week pattern, time-of-day distribution, mood chart for a specific food
+│   ├── InsightsView.swift           # Analytics dashboard — story headline, stats, records, 8 Swift Charts cards + period picker
 │   ├── WeeklyRecapView.swift        # 6-page animated weekly recap; ConfettiView/ConfettiParticle now internal for reuse
 │   ├── StyleGuide.swift             # Brand palette (brandVoid/brandPrimary/brandAccent/brandWarm/brandSurface/brandSuccess), rounded + serif Font extensions, CardModifier, EmptyStateView
 │   ├── AppIconView.swift            # 1024×1024 SwiftUI icon canvas ("YOUR FOOD." / "YOUR STORY." typographic wordmark); export PNG via Settings → Developer → Export App Icon
